@@ -41,6 +41,7 @@ object LocalStorageBackup {
                 json.put("colorHex", course.colorHex)
                 json.put("lectureNotesJson", course.lectureNotesJson)
                 json.put("lectureMeetingsJson", course.lectureMeetingsJson)
+                json.put("category", course.category)
                 jsonArray.put(json)
             }
             sharedPreferences.edit().putString(KEY_COURSES, jsonArray.toString()).apply()
@@ -77,7 +78,8 @@ object LocalStorageBackup {
                         notes = json.optString("notes", ""),
                         colorHex = json.optString("colorHex", "#2563EB"),
                         lectureNotesJson = json.optString("lectureNotesJson", ""),
-                        lectureMeetingsJson = json.optString("lectureMeetingsJson", "")
+                        lectureMeetingsJson = json.optString("lectureMeetingsJson", ""),
+                        category = json.optString("category", "عام")
                     )
                     coursesList.add(course)
                 }

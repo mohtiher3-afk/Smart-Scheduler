@@ -54,7 +54,8 @@ class CourseRepository(private val courseDao: CourseDao) {
                     status = "نشط",
                     completedCount = 5,
                     targetCount = 15,
-                    colorHex = "#2563EB" // Navy Blue
+                    colorHex = "#2563EB", // Navy Blue
+                    category = "محاسبة"
                 ),
                 Course(
                     name = "CMA PART 1 - December 16",
@@ -65,7 +66,8 @@ class CourseRepository(private val courseDao: CourseDao) {
                     status = "نشط",
                     completedCount = 2,
                     targetCount = 15,
-                    colorHex = "#7C3AED" // Violet/Purple
+                    colorHex = "#7C3AED", // Violet/Purple
+                    category = "محاسبة"
                 ),
                 Course(
                     name = "CMA PART 1 - February",
@@ -76,7 +78,8 @@ class CourseRepository(private val courseDao: CourseDao) {
                     status = "غير نشط",
                     completedCount = 0,
                     targetCount = 15,
-                    colorHex = "#0D9488" // Teal
+                    colorHex = "#0D9488", // Teal
+                    category = "محاسبة"
                 ),
                 Course(
                     name = "مدير الخزانة المعتمد (5️⃣ CTP)",
@@ -87,7 +90,8 @@ class CourseRepository(private val courseDao: CourseDao) {
                     status = "نشط",
                     completedCount = 8,
                     targetCount = 12,
-                    colorHex = "#DC2626" // Crimson Red
+                    colorHex = "#DC2626", // Crimson Red
+                    category = "إدارة مالية"
                 ),
                 Course(
                     name = "دورة CTP-الجديدة (6️⃣ CTP)",
@@ -98,7 +102,8 @@ class CourseRepository(private val courseDao: CourseDao) {
                     status = "نشط",
                     completedCount = 4,
                     targetCount = 12,
-                    colorHex = "#059669" // Emerald Green
+                    colorHex = "#059669", // Emerald Green
+                    category = "إدارة مالية"
                 )
             )
             for (course in defaultCourses) {

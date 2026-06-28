@@ -32,9 +32,13 @@ class AlarmReceiver : BroadcastReceiver() {
         val channelId = "course_reminders_channel"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
+        // Read app language from preferences (source of truth is theme_prefs)
+        val sharedPrefs = context.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
+        val currentLang = sharedPrefs.getString("app_language", "ar") ?: "ar"
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channelName = "تنبيهات مواعيد الدورات"
-            val channelDescription = "تنبيهات للتذكير بمحاضرات Zoom وأوقات الدورات"
+            val channelName = if (currentLang == "ar") "تنبيهات مواعيد الدورات" else "Course Schedule Alerts"
+            val channelDescription = if (currentLang == "ar") "تنبيهات للتذكير بمحاضرات Zoom وأوقات الدورات" else "Reminders for Zoom lectures and course times"
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(channelId, channelName, importance).apply {
                 description = channelDescription
@@ -55,11 +59,16 @@ class AlarmReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Polished dynamic content
+        val title = if (currentLang == "ar") "⏰ حان وقت المحاضرة الآن: $courseName" else "⏰ Lecture Starting Now: $courseName"
+        val content = if (currentLang == "ar") "التوقيت: $timeStr | الحساب/الرابط: $zoomLink" else "Time: $timeStr | Zoom/Link: $zoomLink"
+        val subText = if (currentLang == "ar") "تذكير ذكي بالدورات" else "Smart Course Reminder"
+
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm) // System alarm icon
-            .setContentTitle("حان موعد المحاضرة!  $courseName")
-            .setContentText("التوقيت: $timeStr | الحساب: $zoomLink")
-            .setSubText("تذكير ذكي بالدورات")
+            .setContentTitle(title)
+            .setContentText(content)
+            .setSubText(subText)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)

@@ -154,7 +154,7 @@ object SchedulerUtils {
         val indices = mutableListOf<Int>()
         val clean = daysStr.replace("،", " ").replace(",", " ")
         if (clean.contains("الأحد") || clean.contains("الاحد")) indices.add(0)
-        if (clean.contains("الاثنين")) indices.add(1)
+        if (clean.contains("الاثنين") || clean.contains("الإثنين")) indices.add(1)
         if (clean.contains("الثلاثاء")) indices.add(2)
         if (clean.contains("الأربعاء") || clean.contains("الاربعاء")) indices.add(3)
         if (clean.contains("الخميس")) indices.add(4)

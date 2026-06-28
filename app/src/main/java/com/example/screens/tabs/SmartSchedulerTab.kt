@@ -422,7 +422,7 @@ fun SmartSchedulerTab(
                                         )
 
                                         // Selectable Days row using HorizontalScroll and customized chips
-                                        val allArabicDays = listOf("الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت")
+                                        val allArabicDays = listOf("الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت")
                                         val currentDays = course.days.split(",").map { it.trim() }.filter { it.isNotEmpty() }
 
                                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

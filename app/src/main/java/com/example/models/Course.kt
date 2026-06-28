@@ -22,7 +22,8 @@ data class Course(
     val notes: String = "",
     val colorHex: String = "#2563EB",
     val lectureNotesJson: String = "",
-    val lectureMeetingsJson: String = ""
+    val lectureMeetingsJson: String = "",
+    val category: String = "عام"
 ) {
     fun getLectureMeetingDate(lectureIndex: Int): String {
         return try {

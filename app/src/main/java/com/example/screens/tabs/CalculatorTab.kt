@@ -20,6 +20,16 @@ import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.material.icons.rounded.Timer
+import androidx.compose.material.icons.rounded.SkipNext
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Pause
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,6 +46,9 @@ import com.example.models.SessionResult
 import com.example.services.SchedulerUtils
 import com.example.screens.LocalAppLanguage
 import com.example.screens.Loc
+import com.example.screens.MainViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.text.style.TextAlign
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -53,10 +66,27 @@ fun CalculatorTab(
     onToggleReminder: (SessionResult) -> Unit,
     context: Context,
     onToggleSessionCompleted: (Int) -> Unit,
-    onCourseUpdated: (Course) -> Unit = {}
+    onCourseUpdated: (Course) -> Unit = {},
+    viewModel: MainViewModel
 ) {
     val currentLang = LocalAppLanguage.current
     val loc = remember(currentLang) { Loc(currentLang) }
+
+    // Collect Pomodoro Focus, Habits, and Subtasks States
+    val pomodoroIsRunning by viewModel.pomodoroIsRunning.collectAsStateWithLifecycle()
+    val pomodoroRemainingTime by viewModel.pomodoroRemainingTime.collectAsStateWithLifecycle()
+    val pomodoroTotalTime by viewModel.pomodoroTotalTime.collectAsStateWithLifecycle()
+    val pomodoroIsFocus by viewModel.pomodoroIsFocus.collectAsStateWithLifecycle()
+    val pomodoroCompletedCount by viewModel.pomodoroCompletedCount.collectAsStateWithLifecycle()
+    val pomodoroSelectedFocusMin by viewModel.pomodoroSelectedFocusMin.collectAsStateWithLifecycle()
+    val pomodoroSelectedBreakMin by viewModel.pomodoroSelectedBreakMin.collectAsStateWithLifecycle()
+
+    val subtasksMap by viewModel.subtasksList.collectAsStateWithLifecycle()
+    val courseSubtasks = remember(subtasksMap, selectedCourseId) {
+        subtasksMap[selectedCourseId] ?: emptyList()
+    }
+
+    val habitsList by viewModel.habitsList.collectAsStateWithLifecycle()
 
     val activeCourse = courses.find { it.id.toLong() == selectedCourseId }
     val activeCourseColor = remember(activeCourse?.colorHex) {
@@ -102,8 +132,8 @@ fun CalculatorTab(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Dropdown selector
         item {
@@ -116,8 +146,7 @@ fun CalculatorTab(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = loc.selectCourseToCalc,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -183,8 +212,7 @@ fun CalculatorTab(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = loc.selectTimePeriod,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -194,7 +222,7 @@ fun CalculatorTab(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(loc.fromDate, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
+                            Text(loc.fromDate, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier
@@ -213,7 +241,7 @@ fun CalculatorTab(
                         }
 
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(loc.toDate, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
+                            Text(loc.toDate, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(
                                 modifier = Modifier
@@ -577,6 +605,551 @@ fun CalculatorTab(
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        // CARD A: Pomodoro Deep Focus Timer Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)),
+                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.secondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (currentLang == "ar") "مؤقت بومودورو للتركيز الأكاديمي ⏱️" else "Pomodoro Study Focus Timer ⏱️",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.secondary
+                            )
+                        }
+
+                        // Completed Count Badge
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondary,
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = if (currentLang == "ar") "إنجاز: $pomodoroCompletedCount" else "Done: $pomodoroCompletedCount",
+                                color = MaterialTheme.colorScheme.onSecondary,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Timer Visual Indicator & Clock
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceAround,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            val minsValue = pomodoroRemainingTime / 60
+                            val secsValue = pomodoroRemainingTime % 60
+                            val formattedTimeStr = String.format(Locale.US, "%02d:%02d", minsValue, secsValue)
+
+                            Text(
+                                text = formattedTimeStr,
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                            )
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = if (pomodoroIsFocus) {
+                                    if (currentLang == "ar") "جلسة تركيز ودراسة عميقة 🔥" else "Deep Focus Session 🔥"
+                                } else {
+                                    if (currentLang == "ar") "فترة استراحة هادئة ☕" else "Quiet Break Time ☕"
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (pomodoroIsFocus) MaterialTheme.colorScheme.primary else Color(0xFF10B981)
+                            )
+                        }
+
+                        // Play/Pause and Reset buttons
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Play/Pause Action
+                            IconButton(
+                                onClick = {
+                                    if (pomodoroIsRunning) {
+                                        viewModel.pausePomodoro()
+                                    } else {
+                                        viewModel.startPomodoro()
+                                    }
+                                },
+                                modifier = Modifier.size(46.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.secondary
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = if (pomodoroIsRunning) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    contentDescription = "Play/Pause",
+                                    tint = MaterialTheme.colorScheme.onSecondary
+                                )
+                            }
+
+                            // Skip Mode Action
+                            IconButton(
+                                onClick = { viewModel.togglePomodoroMode() },
+                                modifier = Modifier.size(38.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.SkipNext,
+                                    contentDescription = "Skip Mode",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Reset Action
+                            IconButton(
+                                onClick = { viewModel.resetPomodoro() },
+                                modifier = Modifier.size(38.dp),
+                                colors = IconButtonDefaults.iconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Refresh,
+                                    contentDescription = "Reset Timer",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Duration presets
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(15, 25, 45).forEach { min ->
+                            val isSelected = (pomodoroIsFocus && pomodoroSelectedFocusMin == min) || (!pomodoroIsFocus && pomodoroSelectedBreakMin == min)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (isSelected) MaterialTheme.colorScheme.secondary
+                                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                    .clickable {
+                                        if (pomodoroIsFocus) {
+                                            viewModel.setPomodoroDurations(min, pomodoroSelectedBreakMin)
+                                        } else {
+                                            viewModel.setPomodoroDurations(pomodoroSelectedFocusMin, min)
+                                        }
+                                    }
+                                    .padding(vertical = 8.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (currentLang == "ar") "$min دقيقة" else "$min min",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onSecondary else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // CARD B: Course Study Subtasks Card
+        if (activeCourse != null) {
+            item {
+                var newSubtaskText by remember { mutableStateOf("") }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.List,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (currentLang == "ar") "قائمة المهام الفرعية للمادة 📝" else "Course Study Subtasks 📝",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+
+                            // Subtask counts
+                            val subtasksCompletedCount = courseSubtasks.count { it.isCompleted }
+                            val subtasksTotal = courseSubtasks.size
+                            Text(
+                                text = "$subtasksCompletedCount / $subtasksTotal",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Input field to add subtask
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = newSubtaskText,
+                                onValueChange = { newSubtaskText = it },
+                                modifier = Modifier.weight(1f),
+                                placeholder = {
+                                    Text(
+                                        text = if (currentLang == "ar") "إضافة مهمة فرعية (مثال: قراءة الفصل 2)..." else "Add subtask (e.g., Read Ch. 2)...",
+                                        fontSize = 11.sp
+                                    )
+                                },
+                                singleLine = true,
+                                shape = RoundedCornerShape(10.dp),
+                                textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+                            )
+
+                            Button(
+                                onClick = {
+                                    if (newSubtaskText.isNotBlank()) {
+                                        viewModel.addSubtask(selectedCourseId, newSubtaskText.trim())
+                                        newSubtaskText = ""
+                                    }
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text(if (currentLang == "ar") "إضافة" else "Add", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (courseSubtasks.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            // Render list of subtasks
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                courseSubtasks.forEach { subtask ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                                            .padding(horizontal = 8.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Checkbox(
+                                                checked = subtask.isCompleted,
+                                                onCheckedChange = { viewModel.toggleSubtask(selectedCourseId, subtask.id) }
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = subtask.name,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = if (subtask.isCompleted) MaterialTheme.colorScheme.outline
+                                                else MaterialTheme.colorScheme.onSurface,
+                                                style = if (subtask.isCompleted) androidx.compose.ui.text.TextStyle(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                                                else androidx.compose.ui.text.TextStyle()
+                                            )
+                                        }
+
+                                        IconButton(
+                                            onClick = { viewModel.deleteSubtask(selectedCourseId, subtask.id) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Delete,
+                                                contentDescription = "Delete",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // CARD C: Daily Study Habits Tracker Card
+        item {
+            var newHabitText by remember { mutableStateOf("") }
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+            val todayStr = remember { sdf.format(Date()) }
+
+            // Helper to get past 7 days (including today)
+            val past7Days = remember(currentLang) {
+                val cal = Calendar.getInstance()
+                cal.add(Calendar.DAY_OF_YEAR, -6)
+                val formatterDay = SimpleDateFormat("EEE", Locale(currentLang))
+                val list = mutableListOf<Triple<String, String, Boolean>>()
+                for (i in 0..6) {
+                    val dateString = sdf.format(cal.time)
+                    val label = formatterDay.format(cal.time)
+                    val isToday = dateString == todayStr
+                    list.add(Triple(dateString, label, isToday))
+                    cal.add(Calendar.DAY_OF_YEAR, 1)
+                }
+                list
+            }
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFF59E0B).copy(alpha = 0.12f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Star,
+                                    contentDescription = null,
+                                    tint = Color(0xFFF59E0B),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = if (currentLang == "ar") "متابع العادات الدراسية والالتزام ⚡" else "Daily Habits & Consistency ⚡",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD97706)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Input field to add habit
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = newHabitText,
+                            onValueChange = { newHabitText = it },
+                            modifier = Modifier.weight(1f),
+                            placeholder = {
+                                Text(
+                                    text = if (currentLang == "ar") "إضافة عادة دراسية جديدة (مثل: حل مسائل)..." else "Add study habit (e.g., Do exercises)...",
+                                    fontSize = 11.sp
+                                )
+                            },
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 12.sp)
+                        )
+
+                        Button(
+                            onClick = {
+                                if (newHabitText.isNotBlank()) {
+                                    viewModel.addHabit(newHabitText.trim())
+                                    newHabitText = ""
+                                }
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B))
+                        ) {
+                            Text(if (currentLang == "ar") "إضافة" else "Add", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+
+                    if (habitsList.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            habitsList.forEach { habit ->
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
+                                        .padding(10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = habit.name,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Favorite,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFEF4444),
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(
+                                                    text = if (currentLang == "ar") "سلسلة الالتزام: ${habit.streak} أيام 🔥" else "Consistency streak: ${habit.streak} days 🔥",
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.SemiBold,
+                                                    color = Color(0xFFEF4444)
+                                                )
+                                            }
+                                        }
+
+                                        IconButton(
+                                            onClick = { viewModel.deleteHabit(habit.id) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Delete,
+                                                contentDescription = "Delete",
+                                                tint = MaterialTheme.colorScheme.error,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // Weekdays Toggle Row
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        past7Days.forEach { (dateStr, label, isToday) ->
+                                            val isCompleted = habit.completedDates.contains(dateStr)
+                                            Column(
+                                                horizontalAlignment = Alignment.CenterHorizontally,
+                                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .clickable { viewModel.toggleHabitDay(habit.id, dateStr) }
+                                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(
+                                                    text = label,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                                                    color = if (isToday) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(24.dp)
+                                                        .clip(CircleShape)
+                                                        .background(
+                                                            if (isCompleted) Color(0xFF10B981)
+                                                            else MaterialTheme.colorScheme.surfaceVariant
+                                                        )
+                                                        .border(
+                                                            1.dp,
+                                                            if (isCompleted) Color(0xFF10B981)
+                                                            else MaterialTheme.colorScheme.outlineVariant,
+                                                            CircleShape
+                                                        ),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    if (isCompleted) {
+                                                        Icon(
+                                                            imageVector = Icons.Rounded.Check,
+                                                            contentDescription = "Done",
+                                                            tint = Color.White,
+                                                            modifier = Modifier.size(14.dp)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

@@ -25,7 +25,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.screens.CourseScheduleApp
 import com.example.screens.MainViewModel
 import com.example.screens.MainViewModelFactory
-import com.example.ui.theme.MyApplicationTheme
+import com.example.ui.material3_foundation.SmartSchedulerTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,17 +40,11 @@ class MainActivity : ComponentActivity() {
             )
 
             val themeMode by mainViewModel.themeMode.collectAsState()
-            val useDarkTheme = when (themeMode) {
-                "dark" -> true
-                "light" -> false
-                else -> isSystemInDarkTheme()
-            }
-
             val appLanguage by mainViewModel.appLanguage.collectAsState()
             val layoutDirection = if (appLanguage == "ar") androidx.compose.ui.unit.LayoutDirection.Rtl else androidx.compose.ui.unit.LayoutDirection.Ltr
             val dynamicColorEnabled by mainViewModel.dynamicColorEnabled.collectAsState()
 
-            MyApplicationTheme(darkTheme = useDarkTheme, dynamicColor = dynamicColorEnabled) {
+            SmartSchedulerTheme(themeMode = themeMode, dynamicColorEnabled = dynamicColorEnabled) {
                 // Request notification permission launch
                 val launcher = rememberLauncherForActivityResult(
                     contract = ActivityResultContracts.RequestPermission()

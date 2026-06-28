@@ -4,12 +4,16 @@ import android.content.Context
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -20,6 +24,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
@@ -59,7 +65,7 @@ private fun parseTimeToMinutes(timeStr: String): Int {
     return 0
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardTab(
     courses: List<Course>,
@@ -68,9 +74,13 @@ fun DashboardTab(
     onThemeChange: (String) -> Unit,
     onDynamicColorChange: (Boolean) -> Unit,
     onCourseClick: (Course) -> Unit,
+    onAddCourseClick: () -> Unit,
     context: Context,
     modifier: Modifier = Modifier
 ) {
+    val sharedPrefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
+    val currentLang = remember { sharedPrefs.getString("app_language", "ar") ?: "ar" }
+
     if (courses.isEmpty()) {
         Box(
             modifier = modifier
@@ -78,31 +88,77 @@ fun DashboardTab(
                 .padding(24.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("dashboard_empty_state_card"),
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.PieChart,
-                    contentDescription = null,
-                    modifier = Modifier.size(72.dp),
-                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "لا توجد دورات حالية لعرضها في لوحة البيانات",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "قم بإضافة محاضرات ودورات تدريبية لعرض رسوم الإنجاز التفاعلية والمقررات.",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = com.example.R.drawable.img_study_empty),
+                        contentDescription = "Welcome Illustration",
+                        modifier = Modifier
+                            .size(180.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
+                        contentScale = ContentScale.Fit
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = if (currentLang == "ar") "ابدأ رحلتك الأكاديمية الذكية 📚" else "Start Your Smart Academic Journey 📚",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = if (currentLang == "ar") {
+                            "لا توجد دورات حالية لعرضها في لوحة البيانات. أضف محاضراتك ودوراتك التدريبية الآن لعرض رسوم الإنجاز التفاعلية والمقررات وتتبع تقدمك بدقة!"
+                        } else {
+                            "No active courses to display on your dashboard. Add your study schedules and lectures now to unlock beautiful interactive charts, progress tracking, and session alerts!"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 20.sp
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = onAddCourseClick,
+                        modifier = Modifier
+                            .testTag("dashboard_empty_state_add_course_button")
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (currentLang == "ar") "إضافة دورتك الأولى" else "Add Your First Course",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
         return
@@ -124,9 +180,6 @@ fun DashboardTab(
         0f
     }
 
-    val sharedPrefs = remember { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
-    val currentLang = remember { sharedPrefs.getString("app_language", "ar") ?: "ar" }
-
     // Calculate Weekly Attendance Hours
     val totalWeeklyHours = courses.sumOf { course ->
         val startMin = parseTimeToMinutes(course.timeStart)
@@ -144,6 +197,28 @@ fun DashboardTab(
 
     val weeklyHoursFormatted = ((totalWeeklyHours * 10).roundToInt() / 10.0).toString()
     val monthlyCompletionPct = overallPercentage.roundToInt()
+
+    val allLabel = if (currentLang == "ar") "الكل" else "All"
+    var selectedCategoryFilter by remember { mutableStateOf(allLabel) }
+
+    val availableCategories = remember(courses, currentLang) {
+        val cats = courses.map { it.category.trim() }.filter { it.isNotEmpty() }.distinct()
+        listOf(allLabel) + cats
+    }
+
+    val activeSelectedCategory = if (selectedCategoryFilter in availableCategories) {
+        selectedCategoryFilter
+    } else {
+        allLabel
+    }
+
+    val filteredCoursesForProgress = remember(courses, activeSelectedCategory, currentLang) {
+        if (activeSelectedCategory == allLabel) {
+            courses
+        } else {
+            courses.filter { it.category.trim().equals(activeSelectedCategory.trim(), ignoreCase = true) }
+        }
+    }
 
     // Toggle between interactive custom Recharts & native view
     var useInteractiveRecharts by remember { mutableStateOf(true) }
@@ -201,6 +276,201 @@ fun DashboardTab(
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+
+        // Summary Dashboard Component
+        item {
+            val calendar = java.util.Calendar.getInstance()
+            val dayOfWeek = calendar.get(java.util.Calendar.DAY_OF_WEEK)
+            val todayArabicName = when (dayOfWeek) {
+                java.util.Calendar.SUNDAY -> "الأحد"
+                java.util.Calendar.MONDAY -> "الاثنين"
+                java.util.Calendar.TUESDAY -> "الثلاثاء"
+                java.util.Calendar.WEDNESDAY -> "الأربعاء"
+                java.util.Calendar.THURSDAY -> "الخميس"
+                java.util.Calendar.FRIDAY -> "الجمعة"
+                java.util.Calendar.SATURDAY -> "السبت"
+                else -> ""
+            }
+            val todayArabicAlt = when (dayOfWeek) {
+                java.util.Calendar.SUNDAY -> "الاحد"
+                java.util.Calendar.WEDNESDAY -> "الاربعاء"
+                else -> todayArabicName
+            }
+            val activeCoursesToday = courses.filter { course ->
+                course.status == "نشط" && (
+                    course.days.contains(todayArabicName) || 
+                    course.days.contains(todayArabicAlt) ||
+                    (dayOfWeek == java.util.Calendar.SUNDAY && course.days.contains("Sunday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.MONDAY && course.days.contains("Monday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.TUESDAY && course.days.contains("Tuesday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.WEDNESDAY && course.days.contains("Wednesday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.THURSDAY && course.days.contains("Thursday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.FRIDAY && course.days.contains("Friday", ignoreCase = true)) ||
+                    (dayOfWeek == java.util.Calendar.SATURDAY && course.days.contains("Saturday", ignoreCase = true))
+                )
+            }
+            val upcomingSessionsTodayCount = activeCoursesToday.size
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Total Courses Card
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("summary_total_courses"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Book,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "$totalCoursesCount",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (currentLang == "ar") "إجمالي المواد" else "Total Courses",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Upcoming Sessions Today Card
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("summary_upcoming_sessions"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Today,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.secondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "$upcomingSessionsTodayCount",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (currentLang == "ar") "محاضرات اليوم" else "Sessions Today",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                // Progress Percentage Card
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("summary_progress_percentage"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.TrendingUp,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.tertiary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "$monthlyCompletionPct%",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (currentLang == "ar") "نسبة التقدم" else "Progress %",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -812,17 +1082,49 @@ fun DashboardTab(
 
         // Leaderboard / Individual courses progress head
         item {
-            Text(
-                text = "تقدّم الدورات الفردية",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = if (currentLang == "ar") "تقدّم الدورات الفردية" else "Individual Courses Progress",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+                
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                // Horizontal category filter chips
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    items(availableCategories) { cat ->
+                        val isSelected = cat == activeSelectedCategory
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { selectedCategoryFilter = cat },
+                            label = { Text(cat, fontSize = 12.sp, fontWeight = FontWeight.Medium) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        )
+                    }
+                }
+            }
         }
 
-        items(courses) { course ->
-            CoursePercentageProgressCard(course = course, onClick = { onCourseClick(course) })
+        items(filteredCoursesForProgress, key = { it.id }) { course ->
+            Box(
+                modifier = Modifier
+                    .animateItem()
+                    .fillMaxWidth()
+            ) {
+                CoursePercentageProgressCard(course = course, onClick = { onCourseClick(course) })
+            }
         }
     }
 }
@@ -1184,23 +1486,45 @@ fun CoursePercentageProgressCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Active Badge
-                val badgeColor = if (isActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
-                val badgeTextColor = if (isActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
-                val badgeText = if (isActive) "نشط" else "متوقف"
-                
-                Surface(
-                    color = badgeColor,
-                    shape = RoundedCornerShape(30.dp),
-                    border = BorderStroke(1.dp, badgeTextColor.copy(alpha = 0.2f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Text(
-                        text = badgeText,
-                        color = badgeTextColor,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
+                    // Category Badge
+                    if (course.category.isNotEmpty()) {
+                        Surface(
+                            color = courseColor.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(30.dp),
+                            border = BorderStroke(1.dp, courseColor.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = course.category,
+                                color = courseColor,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    // Active Badge
+                    val badgeColor = if (isActive) Color(0xFF10B981).copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant
+                    val badgeTextColor = if (isActive) Color(0xFF10B981) else MaterialTheme.colorScheme.onSurfaceVariant
+                    val badgeText = if (isActive) "نشط" else "متوقف"
+                    
+                    Surface(
+                        color = badgeColor,
+                        shape = RoundedCornerShape(30.dp),
+                        border = BorderStroke(1.dp, badgeTextColor.copy(alpha = 0.2f))
+                    ) {
+                        Text(
+                            text = badgeText,
+                            color = badgeTextColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
 

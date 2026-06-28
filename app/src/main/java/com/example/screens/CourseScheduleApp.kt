@@ -10,19 +10,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.PieChart
-import androidx.compose.material.icons.rounded.Calculate
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.LightMode
-import androidx.compose.material.icons.rounded.BrightnessAuto
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,6 +77,7 @@ fun CourseScheduleApp(
     val upcomingLecturesAlerts by viewModel.upcomingLecturesAlerts.collectAsStateWithLifecycle()
     val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
     val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsStateWithLifecycle()
+    val selectedSound by viewModel.alertSound.collectAsStateWithLifecycle()
 
     LaunchedEffect(upcomingLecturesAlerts) {
         if (upcomingLecturesAlerts.isNotEmpty()) {
@@ -91,477 +86,33 @@ fun CourseScheduleApp(
         }
     }
 
-    var activeTab by remember { mutableStateOf(0) } // 0 = جدول الدورات, 1 = لوحة البيانات, 2 = الحاسبة الذكية, 3 = التنبيهات, 4 = المجدول الذكي
+    val showSplash by viewModel.showSplash.collectAsStateWithLifecycle()
+    val onboardingCompleted by viewModel.onboardingCompleted.collectAsStateWithLifecycle()
+    val pinLockEnabled by viewModel.pinLockEnabled.collectAsStateWithLifecycle()
+    val userAuthenticated by viewModel.userAuthenticated.collectAsStateWithLifecycle()
+    val registeredPin by viewModel.registeredPin.collectAsStateWithLifecycle()
 
-    var showAddCourseDialog by remember { mutableStateOf(false) }
-    var showSettingsDialog by remember { mutableStateOf(false) }
-    var courseToEdit by remember { mutableStateOf<Course?>(null) }
-
-    // Material 3 Coordinated Dynamic Theme Palette
-    val deepNavy = MaterialTheme.colorScheme.primary
-    val accentBlue = MaterialTheme.colorScheme.secondary
-    val lightGrayBg = MaterialTheme.colorScheme.background
-    val activeGreen = MaterialTheme.colorScheme.tertiary
-
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(deepNavy, accentBlue)
-                        )
-                    )
-                    .drawBehind {
-                        // Drawing subtle soft overlays that resemble glowing background spheres
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.08f),
-                            radius = size.width * 0.35f,
-                            center = androidx.compose.ui.geometry.Offset(size.width * 0.9f, size.height * 0.15f)
-                        )
-                        drawCircle(
-                            color = Color.White.copy(alpha = 0.05f),
-                            radius = size.width * 0.55f,
-                            center = androidx.compose.ui.geometry.Offset(size.width * 0.1f, size.height * 0.85f)
-                        )
-                    }
-                    .statusBarsPadding()
-                    .padding(top = 20.dp, bottom = 22.dp, start = 20.dp, end = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    IconButton(
-                        onClick = { showSettingsDialog = true },
-                        modifier = Modifier.testTag("settings_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Settings,
-                            contentDescription = loc.settingsTitle,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Rounded.AutoAwesome,
-                            contentDescription = "Sparkles Icon",
-                            tint = MaterialTheme.colorScheme.tertiaryContainer,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = loc.appTitle,
-                            fontSize = 20.sp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                            fontWeight = FontWeight.Black,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.testTag("app_title")
-                        )
-                    }
-
-                    val themeIcon = when (themeMode) {
-                        "dark" -> Icons.Rounded.DarkMode
-                        "light" -> Icons.Rounded.LightMode
-                        else -> Icons.Rounded.BrightnessAuto
-                    }
-                    val themeLabel = when (themeMode) {
-                        "dark" -> loc.darkTheme
-                        "light" -> loc.lightTheme
-                        else -> loc.systemTheme
-                    }
-
-                    IconButton(
-                        onClick = { viewModel.toggleTheme() },
-                        modifier = Modifier.testTag("theme_toggle_button")
-                    ) {
-                        Icon(
-                            imageVector = themeIcon,
-                            contentDescription = themeLabel,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = loc.appSubtitle,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.90f),
-                    textAlign = TextAlign.Center,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        },
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
-            ) {
-                val scale0 by animateFloatAsState(
-                    targetValue = if (activeTab == 0) 1.15f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "tab0_scale"
-                )
-                val scale1 by animateFloatAsState(
-                    targetValue = if (activeTab == 1) 1.15f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "tab1_scale"
-                )
-                val scale2 by animateFloatAsState(
-                    targetValue = if (activeTab == 2) 1.15f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "tab2_scale"
-                )
-                val scale3 by animateFloatAsState(
-                    targetValue = if (activeTab == 3) 1.15f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "tab3_scale"
-                )
-                val scale4 by animateFloatAsState(
-                    targetValue = if (activeTab == 4) 1.15f else 1.0f,
-                    animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-                    label = "tab4_scale"
-                )
-
-                NavigationBarItem(
-                    selected = activeTab == 0,
-                    onClick = { activeTab = 0 },
-                    icon = { Icon(Icons.Rounded.List, contentDescription = loc.tabSchedule, modifier = Modifier.graphicsLayer(scaleX = scale0, scaleY = scale0)) },
-                    label = { Text(loc.tabSchedule, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.testTag("tab_schedule")
-                )
-                NavigationBarItem(
-                    selected = activeTab == 1,
-                    onClick = { activeTab = 1 },
-                    icon = { Icon(Icons.Rounded.PieChart, contentDescription = loc.tabDashboard, modifier = Modifier.graphicsLayer(scaleX = scale1, scaleY = scale1)) },
-                    label = { Text(loc.tabDashboard, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.testTag("tab_dashboard")
-                )
-                NavigationBarItem(
-                    selected = activeTab == 2,
-                    onClick = { 
-                        if (selectedCourseId == -1L && courses.isNotEmpty()) {
-                            viewModel.selectCourseForCalculator(courses.first().id.toLong())
-                        } else {
-                            viewModel.recalculateSessions()
-                        }
-                        activeTab = 2 
-                    },
-                    icon = { Icon(Icons.Rounded.Calculate, contentDescription = loc.tabCalculator, modifier = Modifier.graphicsLayer(scaleX = scale2, scaleY = scale2)) },
-                    label = { Text(loc.tabCalculator, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.testTag("tab_calculator")
-                )
-                NavigationBarItem(
-                    selected = activeTab == 3,
-                    onClick = { activeTab = 3 },
-                    icon = { 
-                        BadgedBox(badge = {
-                            if (reminders.isNotEmpty()) {
-                                Badge(containerColor = MaterialTheme.colorScheme.secondary, contentColor = Color.White) {
-                                    Text(reminders.size.toString())
-                                }
-                            }
-                        }) {
-                            Icon(Icons.Rounded.Notifications, contentDescription = loc.tabAlerts, modifier = Modifier.graphicsLayer(scaleX = scale3, scaleY = scale3))
-                        }
-                    },
-                    label = { Text(loc.tabAlerts, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.testTag("tab_alerts")
-                )
-                NavigationBarItem(
-                    selected = activeTab == 4,
-                    onClick = { activeTab = 4 },
-                    icon = { Icon(Icons.Rounded.AutoAwesome, contentDescription = loc.tabSmartScheduler, modifier = Modifier.graphicsLayer(scaleX = scale4, scaleY = scale4)) },
-                    label = { Text(loc.tabSmartScheduler, fontSize = 10.sp, fontWeight = FontWeight.Bold, maxLines = 1) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        unselectedTextColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    ),
-                    modifier = Modifier.testTag("tab_smart_scheduler")
-                )
-            }
-        },
-        floatingActionButton = {
-            if (activeTab == 0) {
-                ExtendedFloatingActionButton(
-                    onClick = { 
-                        courseToEdit = null
-                        showAddCourseDialog = true 
-                    },
-                    icon = { Icon(Icons.Rounded.Add, contentDescription = loc.addCourse) },
-                    text = { Text(loc.addCourse, fontWeight = FontWeight.Bold) },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.testTag("add_course_fab")
-                )
-            }
-        },
-        containerColor = lightGrayBg
-    ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            val customToast by viewModel.customInAppToast.collectAsStateWithLifecycle()
-
-            AnimatedVisibility(
-                visible = customToast != null,
-                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .zIndex(99f)
-            ) {
-                customToast?.let { toast ->
-                    CustomInAppToast(
-                        toastData = toast,
-                        currentLang = currentLang,
-                        onDismiss = { viewModel.dismissCustomToast() }
-                    )
-                }
-            }
-
-            AnimatedContent(
-                targetState = activeTab,
-                transitionSpec = {
-                    val duration = 450
-                    val easing = FastOutSlowInEasing
-                    if (initialState == 0 && targetState == 2) {
-                        // Moving from List to Details: Material 3 Shared Axis (X/Y) with smooth upward slide, scale up, and fade
-                        (fadeIn(animationSpec = tween(duration, easing = easing)) + 
-                         scaleIn(initialScale = 0.92f, animationSpec = tween(duration, easing = easing)) +
-                         slideInVertically(initialOffsetY = { it / 10 }, animationSpec = tween(duration, easing = easing)))
-                            .togetherWith(
-                                fadeOut(animationSpec = tween(300, easing = easing)) + 
-                                scaleOut(targetScale = 0.96f, animationSpec = tween(300, easing = easing))
-                            )
-                    } else if (initialState == 2 && targetState == 0) {
-                        // Returning from Details to List: Material 3 Shared Axis transition returning to the main list
-                        (fadeIn(animationSpec = tween(duration, easing = easing)) + 
-                         scaleIn(initialScale = 0.96f, animationSpec = tween(duration, easing = easing)))
-                            .togetherWith(
-                                fadeOut(animationSpec = tween(duration, easing = easing)) + 
-                                scaleOut(targetScale = 0.92f, animationSpec = tween(duration, easing = easing)) +
-                                slideOutVertically(targetOffsetY = { it / 10 }, animationSpec = tween(duration, easing = easing))
-                            )
-                    } else {
-                        // Standard tab-switching sliding transition for other tabs
-                        if (targetState > initialState) {
-                            (slideInHorizontally(animationSpec = tween(duration, easing = easing)) { width -> width } + 
-                             fadeIn(animationSpec = tween(duration, easing = easing))).togetherWith(
-                                slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { width -> -width } + 
-                                fadeOut(animationSpec = tween(duration, easing = easing))
-                            )
-                        } else {
-                            (slideInHorizontally(animationSpec = tween(duration, easing = easing)) { width -> -width } + 
-                             fadeIn(animationSpec = tween(duration, easing = easing))).togetherWith(
-                                slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { width -> width } + 
-                                fadeOut(animationSpec = tween(duration, easing = easing))
-                            )
-                        }
-                    }
-                },
-                label = "tab_transition",
-                modifier = Modifier.fillMaxSize()
-            ) { targetTab ->
-                when (targetTab) {
-                    0 -> ScheduleTab(
-                        courses = courses,
-                        upcomingLecturesAlerts = upcomingLecturesAlerts,
-                        onCalculate = { course ->
-                            viewModel.selectCourseForCalculator(course.id.toLong())
-                            viewModel.recalculateSessions()
-                            activeTab = 2
-                        },
-                        onEdit = { course ->
-                            courseToEdit = course
-                            showAddCourseDialog = true
-                        },
-                        onDelete = { course ->
-                            viewModel.deleteCourse(course)
-                            Toast.makeText(context, "تم حذف الدورة بنجاح", Toast.LENGTH_SHORT).show()
-                        },
-                        onTestAlarm = { course ->
-                            viewModel.triggerInstantTestAlarm(context, course.name, course.zoomAccount)
-                        },
-                        onTestUpcomingAlarm = { courseName, zoom ->
-                            viewModel.triggerInstantTestAlarm(context, courseName, zoom)
-                        },
-                        clipboardManager = clipboardManager,
-                        context = context,
-                        onCourseUpdated = { updatedCourse ->
-                            viewModel.updateCourse(updatedCourse)
-                        },
-                        onExportCSV = {
-                            viewModel.exportAllDataToCSV(context)
-                        },
-                        onRefresh = {
-                            viewModel.scheduleAlarmsForNextLectures(context)
-                            viewModel.checkAndSchedule15MinPreMeetingAlerts(context)
-                        }
-                    )
-                    1 -> DashboardTab(
-                        courses = courses,
-                        themeMode = themeMode,
-                        dynamicColorEnabled = dynamicColorEnabled,
-                        onThemeChange = { viewModel.setThemeMode(it) },
-                        onDynamicColorChange = { viewModel.setDynamicColorEnabled(it) },
-                        onCourseClick = { course ->
-                            viewModel.selectCourseForCalculator(course.id.toLong())
-                            viewModel.recalculateSessions()
-                            activeTab = 2
-                        },
-                        context = context
-                    )
-                    2 -> CalculatorTab(
-                        courses = courses,
-                        selectedCourseId = selectedCourseId,
-                        startDate = startDate,
-                        endDate = endDate,
-                        calculatedSessions = calculatedSessions,
-                        reminders = reminders,
-                        onCourseSelected = { viewModel.selectCourseForCalculator(it) },
-                        onStartDateClick = {
-                            showDatePicker(context, startDate) { viewModel.setStartDate(it) }
-                        },
-                        onEndDateClick = {
-                            showDatePicker(context, endDate) { viewModel.setEndDate(it) }
-                        },
-                        onToggleReminder = { session ->
-                            val selectedCourse = courses.find { it.id.toLong() == selectedCourseId }
-                            if (selectedCourse != null) {
-                                viewModel.toggleReminderForSession(
-                                    context,
-                                    selectedCourse,
-                                    session.dateString,
-                                    session.formattedDate
-                                )
-                            }
-                        },
-                        context = context,
-                        onToggleSessionCompleted = { sessionIndex ->
-                            val selectedCourse = courses.find { it.id.toLong() == selectedCourseId }
-                            if (selectedCourse != null) {
-                                viewModel.updateCourse(selectedCourse.toggleLectureCompleted(sessionIndex))
-                            }
-                        },
-                        onCourseUpdated = { updatedCourse ->
-                            viewModel.updateCourse(updatedCourse)
-                        }
-                    )
-                    3 -> RemindersTab(
-                        reminders = reminders,
-                        onDeleteReminder = { reminder ->
-                            viewModel.deleteReminder(reminder)
-                            Toast.makeText(context, "تم إلغاء التنبيه", Toast.LENGTH_SHORT).show()
-                        },
-                        context = context
-                    )
-                    4 -> SmartSchedulerTab(
-                        viewModel = viewModel,
-                        onCourseAddedAndNavigationRequested = {
-                            activeTab = 0
-                        }
-                    )
-                }
-            }
+    LaunchedEffect(showSplash) {
+        if (showSplash) {
+            kotlinx.coroutines.delay(2200)
+            viewModel.dismissSplash()
         }
     }
 
-    if (showAddCourseDialog) {
-        AddEditCourseDialog(
-            course = courseToEdit,
-            existingCourses = courses,
-            onDismiss = { showAddCourseDialog = false },
-            onConfirm = { name, days, startTime, endTime, zoomAccount, targetCountVal, isActive, reminderLeadMinutes, colorHex ->
-                if (courseToEdit == null) {
-                    viewModel.addCourse(name, days, startTime, endTime, zoomAccount, targetCountVal, isActive, reminderLeadMinutes, colorHex)
-                    val successMsg = if (currentLang == "ar") "تمت إضافة الدورة بنجاح" else "Course added successfully"
-                    Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
-                } else {
-                    viewModel.updateCourse(
-                        courseToEdit!!.copy(
-                            name = name,
-                            days = mapIndicesToArabicDays(days),
-                            timeStart = startTime,
-                            timeEnd = endTime,
-                            zoomAccount = zoomAccount,
-                            status = if (isActive) "نشط" else "غير نشط",
-                            targetCount = targetCountVal,
-                            reminderLeadMinutes = reminderLeadMinutes,
-                            colorHex = colorHex
-                        )
-                    )
-                    val successMsg = if (currentLang == "ar") "تم تحديث الدورة بنجاح" else "Course updated successfully"
-                    Toast.makeText(context, successMsg, Toast.LENGTH_SHORT).show()
-                }
-                showAddCourseDialog = false
-            }
-        )
-    }
-
-    if (showSettingsDialog) {
-        val selectedSound = viewModel.alertSound.collectAsStateWithLifecycle().value
-        SettingsDialog(
+    if (showSplash) {
+        SplashScreenView(currentLang)
+    } else if (!onboardingCompleted) {
+        OnboardingScreenView(currentLang, onGetStarted = { viewModel.completeOnboarding() })
+    } else if (pinLockEnabled && !userAuthenticated) {
+        PinLockScreenView(
             currentLang = currentLang,
-            themeMode = viewModel.themeMode.collectAsStateWithLifecycle().value,
-            dynamicColorEnabled = viewModel.dynamicColorEnabled.collectAsStateWithLifecycle().value,
-            selectedSound = selectedSound,
-            onLangChange = { viewModel.setAppLanguage(it) },
-            onThemeChange = { viewModel.setThemeMode(it) },
-            onDynamicColorChange = { viewModel.setDynamicColorEnabled(it) },
-            onSoundChange = { viewModel.setAlertSound(it) },
-            onPlaySoundPreview = { sound -> viewModel.playAlertSoundPreview(context, sound) },
-            onStopSoundPreview = { viewModel.stopAlertSoundPreview() },
-            onDismiss = { 
-                viewModel.stopAlertSoundPreview()
-                showSettingsDialog = false 
-            },
-            viewModel = viewModel
+            correctPin = registeredPin,
+            onSuccess = { viewModel.authenticateUser(registeredPin) }
+        )
+    } else {
+        com.example.ui.features.home.HomeScreen(
+            viewModel = viewModel,
+            modifier = modifier
         )
     }
 }
@@ -600,14 +151,35 @@ fun SettingsDialog(
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
-                )
-                Text(text = loc.settingsTitle, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        text = loc.settingsTitle,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = if (currentLang == "ar") "تخصيص النظام والمزامنة والتشغيل" else "System configuration & preferences",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         text = {
@@ -616,152 +188,352 @@ fun SettingsDialog(
                     .fillMaxWidth()
                     .heightIn(max = 480.dp)
                     .verticalScroll(rememberScrollState())
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Language Selection
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = loc.selectLanguage,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("ar" to "العربية", "en" to "English").forEach { (code, name) ->
-                            val isSelected = currentLang == code
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onLangChange(code) },
-                                label = { Text(name) },
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // Theme Selection
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = loc.selectTheme,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        listOf(
-                            "system" to loc.systemTheme,
-                            "light" to loc.lightTheme,
-                            "dark" to loc.darkTheme
-                        ).forEach { (mode, name) ->
-                            val isSelected = themeMode == mode
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onThemeChange(mode) },
-                                label = { Text(name, fontSize = 11.sp, maxLines = 1) },
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // Sound Selection
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (currentLang == "ar") "صوت جرس التنبيهات 🔔" else "Notification Alert Sound 🔔",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    
-                    var playingPreview by remember { mutableStateOf<String?>(null) }
-                    
-                    val soundOptions = remember(currentLang) {
-                        listOf(
-                            "default" to (if (currentLang == "ar") "النظام الافتراضي" else "System Default"),
-                            "digital_beep" to (if (currentLang == "ar") "رنين رقمي ثنائي" else "Digital Beep"),
-                            "soft_chime" to (if (currentLang == "ar") "جرس هادئ مزدوج" else "Soft Chime"),
-                            "classic_bell" to (if (currentLang == "ar") "نغمة كلاسيكية" else "Classic Bell"),
-                            "tech_alert" to (if (currentLang == "ar") "تنبيه تقني متصاعد" else "Tech Alert")
-                        )
-                    }
-
+                // CARD 1: Appearance & Language Settings
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
                     Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        soundOptions.forEach { (soundKey, soundLabel) ->
-                            val isSelected = selectedSound == soundKey
-                            Surface(
-                                onClick = { 
-                                    onSoundChange(soundKey)
-                                },
-                                shape = RoundedCornerShape(12.dp),
-                                color = if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f) else Color.Transparent,
-                                modifier = Modifier.fillMaxWidth()
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Translate,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "اللغة والمظهر" else "Language & Theme",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        // Select Language
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = loc.selectLanguage,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                listOf("ar" to "العربية", "en" to "English").forEach { (code, name) ->
+                                    val isSelected = currentLang == code
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable { onLangChange(code) }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = name,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Select Theme
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                text = loc.selectTheme,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                listOf(
+                                    "system" to loc.systemTheme,
+                                    "light" to loc.lightTheme,
+                                    "dark" to loc.darkTheme
+                                ).forEach { (mode, name) ->
+                                    val isSelected = themeMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(
+                                                if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
+                                            .clickable { onThemeChange(mode) }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = name,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Dynamic Color Switch
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = loc.enableDynamicColor,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = loc.dynamicColorDesc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 10.sp
+                                    )
+                                }
+                                Switch(
+                                    checked = dynamicColorEnabled,
+                                    onCheckedChange = onDynamicColorChange,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // CARD 2: Sound Alert Settings
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "صوت جرس التنبيهات 🔔" else "Notification Alert Sound 🔔",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        var playingPreview by remember { mutableStateOf<String?>(null) }
+                        var dropdownExpanded by remember { mutableStateOf(false) }
+
+                        val soundOptions = remember(currentLang) {
+                            listOf(
+                                "default" to (if (currentLang == "ar") "النظام الافتراضي 📱" else "System Default 📱"),
+                                "digital_beep" to (if (currentLang == "ar") "رنين رقمي ثنائي 📟" else "Digital Beep 📟"),
+                                "soft_chime" to (if (currentLang == "ar") "جرس هادئ مزدوج 🔔" else "Soft Chime 🔔"),
+                                "classic_bell" to (if (currentLang == "ar") "نغمة كلاسيكية 🎼" else "Classic Bell 🎼"),
+                                "tech_alert" to (if (currentLang == "ar") "تنبيه تقني متصاعد ⚡" else "Tech Alert ⚡")
+                            )
+                        }
+
+                        val selectedLabel = soundOptions.find { it.first == selectedSound }?.second ?: selectedSound
+
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (currentLang == "ar") "اختر نغمة التنبيه المفضلة:" else "Select alert sound preference:",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            // Elegant Dropdown Selector Component
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentSize(Alignment.TopStart)
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            width = 1.dp,
+                                            color = MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable { dropdownExpanded = true }
+                                        .padding(horizontal = 12.dp, vertical = 10.dp)
+                                        .testTag("sound_selector_dropdown"),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         modifier = Modifier.weight(1f)
                                     ) {
-                                        RadioButton(
-                                            selected = isSelected,
-                                            onClick = { onSoundChange(soundKey) },
-                                            colors = RadioButtonDefaults.colors(
-                                                selectedColor = MaterialTheme.colorScheme.primary
-                                            )
+                                        Icon(
+                                            imageVector = Icons.Rounded.MusicNote,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(18.dp)
                                         )
                                         Text(
-                                            text = soundLabel,
+                                            text = selectedLabel,
                                             fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
 
-                                    IconButton(
-                                        onClick = {
-                                            if (playingPreview == soundKey) {
-                                                onStopSoundPreview()
-                                                playingPreview = null
-                                            } else {
-                                                onPlaySoundPreview(soundKey)
-                                                playingPreview = soundKey
-                                            }
-                                        },
-                                        modifier = Modifier.size(32.dp)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
+                                        // Preview button for the currently selected sound
+                                        IconButton(
+                                            onClick = {
+                                                if (playingPreview == selectedSound) {
+                                                    onStopSoundPreview()
+                                                    playingPreview = null
+                                                } else {
+                                                    onPlaySoundPreview(selectedSound)
+                                                    playingPreview = selectedSound
+                                                }
+                                            },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (playingPreview == selectedSound) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                                contentDescription = "Preview sound",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+
                                         Icon(
-                                            imageVector = if (playingPreview == soundKey) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                                            contentDescription = if (playingPreview == soundKey) "Stop" else "Play",
-                                            tint = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(18.dp)
+                                            imageVector = if (dropdownExpanded) Icons.Rounded.KeyboardArrowUp else Icons.Rounded.KeyboardArrowDown,
+                                            contentDescription = "Expand sound selector",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+
+                                DropdownMenu(
+                                    expanded = dropdownExpanded,
+                                    onDismissRequest = { dropdownExpanded = false },
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.9f)
+                                        .background(MaterialTheme.colorScheme.surface)
+                                        .border(
+                                            1.dp,
+                                            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                ) {
+                                    soundOptions.forEach { (soundKey, soundLabel) ->
+                                        val isCurrent = selectedSound == soundKey
+                                        DropdownMenuItem(
+                                            text = {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    if (isCurrent) {
+                                                        Icon(
+                                                            imageVector = Icons.Rounded.Check,
+                                                            contentDescription = "Selected",
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(16.dp)
+                                                        )
+                                                    } else {
+                                                        Spacer(modifier = Modifier.size(16.dp))
+                                                    }
+                                                    Text(
+                                                        text = soundLabel,
+                                                        fontSize = 12.sp,
+                                                        fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+                                                        color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                            },
+                                            trailingIcon = {
+                                                IconButton(
+                                                    onClick = {
+                                                        if (playingPreview == soundKey) {
+                                                            onStopSoundPreview()
+                                                            playingPreview = null
+                                                        } else {
+                                                            onPlaySoundPreview(soundKey)
+                                                            playingPreview = soundKey
+                                                        }
+                                                    },
+                                                    modifier = Modifier.size(28.dp)
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (playingPreview == soundKey) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                                        contentDescription = "Preview sound option",
+                                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                onSoundChange(soundKey)
+                                                dropdownExpanded = false
+                                            }
                                         )
                                     }
                                 }
@@ -770,371 +542,582 @@ fun SettingsDialog(
                     }
                 }
 
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                // CARD 3: System Calendar Integration
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CalendarToday,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "التكامل مع تقويم أندرويد 📅" else "System Calendar Sync 📅",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
 
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = if (currentLang == "ar") {
+                                "مزامنة مواعيد دوراتك التدريبية النشطة مباشرة مع تقويم أندرويد لتلقي تنبيهات منسقة على هاتفك وساعتك الذكية."
+                            } else {
+                                "Synchronize your active course schedules directly with Android Calendar to receive alerts on your smartwatch."
+                            },
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        Button(
+                            onClick = {
+                                var successCount = 0
+                                val activeCourses = courses.filter { it.status == "نشط" }
+                                for (course in activeCourses) {
+                                    val result = com.example.services.CalendarProviderHelper.syncCourseToCalendar(context, course)
+                                    if (result) successCount++
+                                }
+                                if (successCount > 0) {
+                                    val msg = if (currentLang == "ar") {
+                                        "تم مزامنة $successCount دورات مع تقويم نظام أندرويد بنجاح!"
+                                    } else {
+                                        "Synced $successCount courses to Android Calendar successfully!"
+                                    }
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    com.example.services.DiagnosticLogger.log("INFO", "CalendarSync", msg)
+                                } else {
+                                    val msg = if (currentLang == "ar") {
+                                        "تنبيه: الرجاء التأكد من تفعيل صلاحيات التقويم للتطبيق في إعدادات نظام أندرويد."
+                                    } else {
+                                        "Warning: Please ensure Calendar write permissions are enabled in Android settings."
+                                    }
+                                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                                    com.example.services.DiagnosticLogger.log("WARN", "CalendarSync", "فشل المزامنة لعدم توفر الصلاحية أو عدم وجود دورات نشطة.")
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Rounded.Sync, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = if (currentLang == "ar") "مزامنة المواعيد مع التقويم" else "Sync to Calendar",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // CARD 4: Cloud Sync & Backup
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CloudSync,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "النسخ الاحتياطي السحابي ☁️" else "Cloud Sync & Backup ☁️",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (currentLang == "ar") "آخر مزامنة ناجحة:" else "Last successful sync:",
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = lastSyncTime,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        when (val state = syncState) {
+                            is com.example.services.CloudSyncManager.SyncState.Syncing -> {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    LinearProgressIndicator(
+                                        progress = state.progress,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                    Text(
+                                        text = state.message,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.secondary,
+                                        style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            }
+                            is com.example.services.CloudSyncManager.SyncState.Success -> {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFF10B981).copy(alpha = 0.15f))
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = state.message,
+                                        fontSize = 10.sp,
+                                        color = Color(0xFF047857),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            is com.example.services.CloudSyncManager.SyncState.Error -> {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.errorContainer)
+                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = state.error,
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                            else -> {}
+                        }
+
+                        Button(
+                            onClick = {
+                                scope.launch {
+                                    com.example.services.CloudSyncManager.performCloudSync(context, courses)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                            enabled = syncState !is com.example.services.CloudSyncManager.SyncState.Syncing,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Text(
+                                    text = if (currentLang == "ar") "بدء النسخ الاحتياطي الفوري" else "Start Quick Backup",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // CARD 5: Remote Config & Bulletins
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Campaign,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "إعلانات وتحديثات المطور عن بُعد 🌐" else "Remote Bulletins & Announcements 🌐",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.6f))
+                                .padding(10.dp)
+                        ) {
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text(
+                                    text = remoteConfig.announcement,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Text(
+                                    text = if (currentLang == "ar") remoteConfig.motdArabic else remoteConfig.motdEnglish,
+                                    fontSize = 10.sp,
+                                    lineHeight = 14.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = if (currentLang == "ar") "الدعم الفني والاتصال:" else "Support & Contact:",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = remoteConfig.supportContact,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                scope.launch {
+                                    com.example.services.RemoteConfigManager.fetchLatestConfig()
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !isFetchingConfig,
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(Icons.Rounded.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Text(
+                                    text = if (isFetchingConfig) {
+                                        if (currentLang == "ar") "جاري التحديث..." else "Refreshing..."
+                                    } else {
+                                        if (currentLang == "ar") "تحديث إعلانات النظام مباشرة" else "Refresh Live Config"
+                                    },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // CARD 6: Diagnostics & Observability Console
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Terminal,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    text = if (currentLang == "ar") "لوحة تشخيص وتتبع الأداء 🛠️" else "Diagnostics Console 🛠️",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            IconButton(
+                                onClick = { showLogsConsole = !showLogsConsole },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showLogsConsole) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                                    contentDescription = "Toggle logs",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        if (showLogsConsole) {
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF121212)), // Deep terminal black
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "CONSOLE STDOUT / EVENT TRACE",
+                                            color = Color(0xFF757575),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                        )
+                                        TextButton(
+                                            onClick = { com.example.services.DiagnosticLogger.clearLogs() },
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                            modifier = Modifier.height(24.dp)
+                                        ) {
+                                            Text(
+                                                text = "CLEAR",
+                                                color = Color(0xFFEF4444),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .weight(1f)
+                                            .verticalScroll(rememberScrollState()),
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        if (diagnosticLogs.isEmpty()) {
+                                            Text(
+                                                text = "[OK] All system engines nominal. Trace is clean.",
+                                                color = Color(0xFF10B981),
+                                                fontSize = 9.sp,
+                                                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                            )
+                                        } else {
+                                            diagnosticLogs.forEach { log ->
+                                                val color = when (log.level) {
+                                                    "WARN" -> Color(0xFFF59E0B) // Amber
+                                                    "ERROR" -> Color(0xFFEF4444) // Red
+                                                    else -> Color(0xFF10B981) // Green
+                                                }
+                                                Text(
+                                                    text = "${log.timestamp} [${log.level}] <${log.tag}>: ${log.message}",
+                                                    color = color,
+                                                    fontSize = 8.sp,
+                                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // CARD 7: Security Lock Settings (PIN Lock)
+                val pinLockEnabled by viewModel.pinLockEnabled.collectAsStateWithLifecycle()
+                val registeredPin by viewModel.registeredPin.collectAsStateWithLifecycle()
+                var showChangePinDialog by remember { mutableStateOf(false) }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Lock,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                text = if (currentLang == "ar") "أمن وحماية التطبيق 🔐" else "App Security & Lock 🔐",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Text(
+                            text = if (currentLang == "ar") {
+                                "قم بتأمين جدول دوراتك الأكاديمية وأجهزتك عن طريق تمكين قفل رمز PIN السري."
+                            } else {
+                                "Secure your academic timetable schedules and notes by enabling a security PIN lock."
+                            },
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = loc.enableDynamicColor,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = loc.dynamicColorDesc,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            Switch(
-                                checked = dynamicColorEnabled,
-                                onCheckedChange = onDynamicColorChange,
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary,
-                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
-                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                                )
-                            )
-                        }
-                    }
-                }
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // ---- 1. OS Integration ----
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (currentLang == "ar") "التكامل مع نظام التشغيل 📱" else "OS Integration 📱",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
                             Text(
-                                text = if (currentLang == "ar") {
-                                    "يمكنك مزامنة مواعيد دوراتك التدريبية مباشرة مع تقويم أندرويد لتلقي التنبيهات على ساعتك الذكية."
-                                } else {
-                                    "Synchronize your course schedules directly with Android Calendar to receive alerts on your smartwatch."
-                                },
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Button(
-                                onClick = {
-                                    var successCount = 0
-                                    val activeCourses = courses.filter { it.status == "نشط" }
-                                    for (course in activeCourses) {
-                                        val result = com.example.services.CalendarProviderHelper.syncCourseToCalendar(context, course)
-                                        if (result) successCount++
-                                    }
-                                    if (successCount > 0) {
-                                        val msg = if (currentLang == "ar") {
-                                            "تم مزامنة $successCount دورات مع تقويم نظام أندرويد بنجاح!"
-                                        } else {
-                                            "Synced $successCount courses to Android Calendar successfully!"
-                                        }
-                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                        com.example.services.DiagnosticLogger.log("INFO", "CalendarSync", msg)
-                                    } else {
-                                        val msg = if (currentLang == "ar") {
-                                            "تنبيه: الرجاء التأكد من تفعيل صلاحيات التقويم للتطبيق في إعدادات نظام أندرويد."
-                                        } else {
-                                            "Warning: Please ensure Calendar write permissions are enabled in Android settings."
-                                        }
-                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                        com.example.services.DiagnosticLogger.log("WARN", "CalendarSync", "فشل المزامنة لعدم توفر الصلاحية أو عدم وجود دورات نشطة.")
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                            ) {
-                                Text(
-                                    text = if (currentLang == "ar") "مزامنة المواعيد مع تقويم النظام 📅" else "Sync to System Calendar 📅",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // ---- 2. Cloud Backup & Sync ----
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (currentLang == "ar") "مزامنة سحابية وقاعدة بيانات آمنة ☁️" else "Cloud Sync & Secure Storage ☁️",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = if (currentLang == "ar") "آخر مزامنة ناجحة:" else "Last successful sync:",
-                                    fontSize = 11.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = lastSyncTime,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            when (val state = syncState) {
-                                is com.example.services.CloudSyncManager.SyncState.Syncing -> {
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        LinearProgressIndicator(
-                                            progress = state.progress,
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        Text(
-                                            text = state.message,
-                                            fontSize = 10.sp,
-                                            color = MaterialTheme.colorScheme.secondary,
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                }
-                                is com.example.services.CloudSyncManager.SyncState.Success -> {
-                                    Text(
-                                        text = state.message,
-                                        fontSize = 11.sp,
-                                        color = Color(0xFF10B981),
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                is com.example.services.CloudSyncManager.SyncState.Error -> {
-                                    Text(
-                                        text = state.error,
-                                        fontSize = 11.sp,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-                                else -> {}
-                            }
-
-                            Button(
-                                onClick = {
-                                    scope.launch {
-                                        com.example.services.CloudSyncManager.performCloudSync(context, courses)
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                                enabled = syncState !is com.example.services.CloudSyncManager.SyncState.Syncing
-                            ) {
-                                Text(
-                                    text = if (currentLang == "ar") "بدء النسخ الاحتياطي السحابي السريع ☁️" else "Start Quick Cloud Backup ☁️",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // ---- 3. Remote Server Message & Support ----
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = if (currentLang == "ar") "إعلانات ودعم المطورين عن بُعد 🌐" else "Remote Config & Developer Support 🌐",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = remoteConfig.announcement,
+                                text = if (currentLang == "ar") "تفعيل قفل رمز PIN" else "Enable PIN Lock",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                                color = MaterialTheme.colorScheme.onSurface
                             )
-                            Text(
-                                text = if (currentLang == "ar") remoteConfig.motdArabic else remoteConfig.motdEnglish,
-                                fontSize = 10.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Switch(
+                                checked = pinLockEnabled,
+                                onCheckedChange = { enabled ->
+                                    if (enabled) {
+                                        viewModel.enablePinLock("1234") // default pin
+                                        Toast.makeText(context, if (currentLang == "ar") "تم تفعيل القفل بنجاح! الرمز الافتراضي: 1234" else "Lock enabled! Default PIN: 1234", Toast.LENGTH_LONG).show()
+                                    } else {
+                                        viewModel.disablePinLock()
+                                        Toast.makeText(context, if (currentLang == "ar") "تم تعطيل قفل رمز PIN بنجاح." else "PIN lock disabled successfully.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             )
+                        }
+
+                        if (pinLockEnabled) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = if (currentLang == "ar") "الدعم الفني:" else "Support Contact:",
+                                    text = if (currentLang == "ar") "رمز القفل الحالي: $registeredPin" else "Current PIN: $registeredPin",
                                     fontSize = 11.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(
-                                    text = remoteConfig.supportContact,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            OutlinedButton(
-                                onClick = {
-                                    scope.launch {
-                                        com.example.services.RemoteConfigManager.fetchLatestConfig()
-                                    }
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                enabled = !isFetchingConfig
-                            ) {
-                                Text(
-                                    text = if (isFetchingConfig) {
-                                        if (currentLang == "ar") "جاري جلب البيانات..." else "Fetching config..."
-                                    } else {
-                                        if (currentLang == "ar") "تحديث إعلانات النظام المباشرة 🔄" else "Refresh System Announcements 🔄"
-                                    },
-                                    fontSize = 11.sp
-                                )
+                                TextButton(
+                                    onClick = { showChangePinDialog = true }
+                                ) {
+                                    Text(
+                                        text = if (currentLang == "ar") "تغيير الرمز" else "Change PIN",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
                 }
 
-                Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-                // ---- 4. Diagnostics Observability Console ----
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = if (currentLang == "ar") "لوحة التشخيص ومراقبة الأداء البرمجي 🛠️" else "Diagnostics & Observability Console 🛠️",
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                        IconButton(
-                            onClick = { showLogsConsole = !showLogsConsole },
-                            modifier = Modifier.size(32.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (showLogsConsole) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
-                                contentDescription = "Toggle logs",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    if (showLogsConsole) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(180.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), // Deep console dark
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = "CONSOLE STDOUT / TRACE LOGS",
-                                        color = Color(0xFF888888),
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                    TextButton(
-                                        onClick = { com.example.services.DiagnosticLogger.clearLogs() },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
-                                        modifier = Modifier.height(24.dp)
-                                    ) {
-                                        Text("CLEAR", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .weight(1f)
-                                        .verticalScroll(rememberScrollState()),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    if (diagnosticLogs.isEmpty()) {
-                                        Text(
-                                            text = "[OK] No event traces logged yet. All systems nominal.",
-                                            color = Color(0xFF10B981),
-                                            fontSize = 10.sp
-                                        )
-                                    } else {
-                                        diagnosticLogs.forEach { log ->
-                                            val color = when (log.level) {
-                                                "WARN" -> Color(0xFFF59E0B) // Amber
-                                                "ERROR" -> Color(0xFFEF4444) // Red
-                                                else -> Color(0xFF10B981) // Green
-                                            }
-                                            Text(
-                                                text = "${log.timestamp} [${log.level}] <${log.tag}>: ${log.message}",
-                                                color = color,
-                                                fontSize = 9.sp
-                                            )
+                if (showChangePinDialog) {
+                    var newPinInput by remember { mutableStateOf("") }
+                    AlertDialog(
+                        onDismissRequest = { showChangePinDialog = false },
+                        title = { Text(if (currentLang == "ar") "تغيير رمز PIN" else "Change PIN") },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(
+                                    text = if (currentLang == "ar") "أدخل رمز PIN جديد يتكون من 4 أرقام:" else "Enter a new 4-digit security PIN:",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                OutlinedTextField(
+                                    value = newPinInput,
+                                    onValueChange = {
+                                        if (it.length <= 4 && it.all { char -> char.isDigit() }) {
+                                            newPinInput = it
                                         }
+                                    },
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (newPinInput.length == 4) {
+                                        viewModel.enablePinLock(newPinInput)
+                                        showChangePinDialog = false
+                                        Toast.makeText(context, if (currentLang == "ar") "تم تغيير الرمز بنجاح!" else "PIN changed successfully!", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        Toast.makeText(context, if (currentLang == "ar") "الرجاء إدخال 4 أرقام بالضبط." else "Please enter exactly 4 digits.", Toast.LENGTH_SHORT).show()
                                     }
                                 }
+                            ) {
+                                Text(if (currentLang == "ar") "حفظ" else "Save")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showChangePinDialog = false }) {
+                                Text(if (currentLang == "ar") "إلغاء" else "Cancel")
                             }
                         }
-                    }
+                    )
                 }
             }
         },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     onStopSoundPreview()
                     onDismiss()
-                }
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Text(text = loc.close, fontWeight = FontWeight.Bold)
+                Text(
+                    text = loc.close,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp
+                )
             }
         },
         shape = RoundedCornerShape(24.dp)
@@ -1176,4 +1159,379 @@ private fun showDatePicker(
         calendar.get(Calendar.DAY_OF_MONTH)
     )
     datePickerDialog.show()
+}
+
+@Composable
+fun SplashScreenView(currentLang: String) {
+    val deepNavy = MaterialTheme.colorScheme.primary
+    val accentBlue = MaterialTheme.colorScheme.secondary
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(deepNavy, accentBlue)
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .background(Color.White.copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                    .border(2.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.AutoAwesome,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(42.dp)
+                )
+            }
+            
+            Text(
+                text = if (currentLang == "ar") "المجدول الذكي" else "Smart Scheduler",
+                fontSize = 28.sp,
+                color = Color.White,
+                fontWeight = FontWeight.Black
+            )
+            
+            Text(
+                text = if (currentLang == "ar") "مخطط ومجدول أكاديمي مدعوم بالذكاء الاصطناعي" else "AI-Powered Academic Planner",
+                fontSize = 12.sp,
+                color = Color.White.copy(alpha = 0.85f),
+                fontWeight = FontWeight.Medium
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.tertiaryContainer,
+                strokeWidth = 3.dp,
+                modifier = Modifier.size(32.dp)
+            )
+        }
+    }
+}
+
+@Composable
+fun OnboardingScreenView(
+    currentLang: String,
+    onGetStarted: () -> Unit
+) {
+    var step by remember { mutableStateOf(0) }
+    
+    val onboardingData = remember(currentLang) {
+        listOf(
+            Triple(
+                Icons.Rounded.AutoAwesome,
+                if (currentLang == "ar") "جدولة وتخطيط ذكي" else "Smart AI Scheduling",
+                if (currentLang == "ar") {
+                    "قم بإنشاء وتوزيع محاضراتك ودوراتك تلقائيًا وبلمسة واحدة باستخدام مساعدنا الذكي."
+                } else {
+                    "Automatically schedule and distribute training courses and lectures using our AI assistant."
+                }
+            ),
+            Triple(
+                Icons.Rounded.Timeline,
+                if (currentLang == "ar") "إحصائيات متقدمة ومتابعة" else "Advanced Insights & Analytics",
+                if (currentLang == "ar") {
+                    "تتبع تقدم محاضراتك ومستوى إنجازك الأكاديمي أولاً بأول من خلال رسوم بيانية تفاعلية متكاملة."
+                } else {
+                    "Track your course completion rate, remaining hours, and attendance consistency via interactive metrics."
+                }
+            ),
+            Triple(
+                Icons.Rounded.Timer,
+                if (currentLang == "ar") "مؤقت بومودورو وعادات يومية" else "Focus & Daily Consistency",
+                if (currentLang == "ar") {
+                    "عزز تركيزك الأكاديمي بمؤقت بومودورو للدراسة العميقة، وتابع عاداتك اليومية وقائمة مهامك بكل سهولة."
+                } else {
+                    "Boost study focus with the integrated Pomodoro timer, maintain consistent habits, and complete course subtasks."
+                }
+            )
+        )
+    }
+    
+    val currentData = onboardingData[step]
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Top Indicator Dots
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(top = 16.dp)
+            ) {
+                onboardingData.forEachIndexed { index, _ ->
+                    Box(
+                        modifier = Modifier
+                            .height(6.dp)
+                            .width(if (step == index) 20.dp else 6.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (step == index) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant
+                            )
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.weight(0.4f))
+            
+            // Visual Card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(260.dp),
+                shape = RoundedCornerShape(28.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f))
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = currentData.first,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(96.dp)
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(24.dp))
+            
+            // Text Details
+            Text(
+                text = currentData.second,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center
+            )
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Text(
+                text = currentData.third,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+            
+            Spacer(modifier = Modifier.weight(0.6f))
+            
+            // Bottom Action buttons
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onGetStarted
+                ) {
+                    Text(
+                        text = if (currentLang == "ar") "تخطي" else "Skip",
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+                
+                Button(
+                    onClick = {
+                        if (step < onboardingData.size - 1) {
+                            step++
+                        } else {
+                            onGetStarted()
+                        }
+                    },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Text(
+                            text = if (step == onboardingData.size - 1) {
+                                if (currentLang == "ar") "ابدأ الآن" else "Get Started"
+                            } else {
+                                if (currentLang == "ar") "التالي" else "Next"
+                            },
+                            fontWeight = FontWeight.Black
+                        )
+                        Icon(
+                            imageVector = if (currentLang == "ar") Icons.Rounded.ArrowBack else Icons.Rounded.ArrowForward,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PinLockScreenView(
+    currentLang: String,
+    correctPin: String,
+    onSuccess: () -> Unit
+) {
+    var pin by remember { mutableStateOf("") }
+    var errorMsg by remember { mutableStateOf("") }
+    
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(28.dp),
+            modifier = Modifier.widthIn(max = 400.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Lock,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(48.dp)
+            )
+            
+            Text(
+                text = if (currentLang == "ar") "أدخل رمز PIN لفتح التطبيق" else "Enter security PIN to unlock",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            
+            // Bullet indicators
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                (0..3).forEach { index ->
+                    val isFilled = index < pin.length
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isFilled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .border(
+                                1.5.dp,
+                                if (isFilled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                CircleShape
+                            )
+                    )
+                }
+            }
+            
+            if (errorMsg.isNotEmpty()) {
+                Text(
+                    text = errorMsg,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            // Numeric Grid
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                listOf(
+                    listOf("1", "2", "3"),
+                    listOf("4", "5", "6"),
+                    listOf("7", "8", "9"),
+                    listOf("C", "0", "🔓")
+                ).forEach { row ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        row.forEach { char ->
+                            val isSpecial = char == "C" || char == "🔓"
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(CircleShape)
+                                    .background(
+                                        if (isSpecial) MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                                        else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                    .clickable {
+                                        when (char) {
+                                            "C" -> {
+                                                if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                                                errorMsg = ""
+                                            }
+                                            "🔓" -> {
+                                                if (pin == correctPin) {
+                                                    onSuccess()
+                                                } else {
+                                                    errorMsg = if (currentLang == "ar") "رمز المرور غير صحيح! حاول مجددًا." else "Incorrect PIN! Please try again."
+                                                    pin = ""
+                                                }
+                                            }
+                                            else -> {
+                                                if (pin.length < 4) {
+                                                    pin += char
+                                                    errorMsg = ""
+                                                    if (pin.length == 4) {
+                                                        if (pin == correctPin) {
+                                                            onSuccess()
+                                                        } else {
+                                                            errorMsg = if (currentLang == "ar") "رمز المرور غير صحيح! حاول مجددًا." else "Incorrect PIN! Please try again."
+                                                            pin = ""
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = char,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = if (isSpecial) MaterialTheme.colorScheme.onSecondaryContainer
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

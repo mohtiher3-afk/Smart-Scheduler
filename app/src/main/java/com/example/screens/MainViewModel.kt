@@ -117,11 +117,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun toggleTheme() {
-        val nextMode = when (_themeMode.value) {
-            "system" -> "dark"
-            "dark" -> "light"
-            else -> "system"
+        val currentMode = _themeMode.value
+        val isSystemDark = (getApplication<Application>().resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
+        val isCurrentlyDark = when (currentMode) {
+            "dark" -> true
+            "light" -> false
+            else -> isSystemDark
         }
+        val nextMode = if (isCurrentlyDark) "light" else "dark"
         setThemeMode(nextMode)
     }
 
@@ -152,7 +155,341 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         com.example.services.AlertSoundPlayer.stopSound()
     }
 
+    // Splash state
+    private val _showSplash = MutableStateFlow(true)
+    val showSplash: StateFlow<Boolean> = _showSplash.asStateFlow()
+
+    fun dismissSplash() {
+        _showSplash.value = false
+    }
+
+    // Onboarding state
+    private val _onboardingCompleted = MutableStateFlow(sharedPrefs.getBoolean("onboarding_completed", false))
+    val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted.asStateFlow()
+
+    fun completeOnboarding() {
+        sharedPrefs.edit().putBoolean("onboarding_completed", true).apply()
+        _onboardingCompleted.value = true
+    }
+
+    fun resetOnboarding() {
+        sharedPrefs.edit().putBoolean("onboarding_completed", false).apply()
+        _onboardingCompleted.value = false
+    }
+
+    // PIN Security lock state
+    private val _pinLockEnabled = MutableStateFlow(sharedPrefs.getBoolean("pin_lock_enabled", false))
+    val pinLockEnabled: StateFlow<Boolean> = _pinLockEnabled.asStateFlow()
+
+    private val _userAuthenticated = MutableStateFlow(false)
+    val userAuthenticated: StateFlow<Boolean> = _userAuthenticated.asStateFlow()
+
+    private val _registeredPin = MutableStateFlow(sharedPrefs.getString("registered_pin", "1234") ?: "1234")
+    val registeredPin: StateFlow<String> = _registeredPin.asStateFlow()
+
+    fun enablePinLock(pin: String) {
+        sharedPrefs.edit().putBoolean("pin_lock_enabled", true).putString("registered_pin", pin).apply()
+        _pinLockEnabled.value = true
+        _registeredPin.value = pin
+    }
+
+    fun disablePinLock() {
+        sharedPrefs.edit().putBoolean("pin_lock_enabled", false).apply()
+        _pinLockEnabled.value = false
+    }
+
+    fun authenticateUser(pin: String): Boolean {
+        return if (pin == _registeredPin.value) {
+            _userAuthenticated.value = true
+            true
+        } else {
+            false
+        }
+    }
+
+    fun logout() {
+        _userAuthenticated.value = false
+    }
+
+    // Pomodoro Timer State
+    private val _pomodoroIsRunning = MutableStateFlow(false)
+    val pomodoroIsRunning: StateFlow<Boolean> = _pomodoroIsRunning.asStateFlow()
+
+    private val _pomodoroRemainingTime = MutableStateFlow(25 * 60) // 25 min in seconds
+    val pomodoroRemainingTime: StateFlow<Int> = _pomodoroRemainingTime.asStateFlow()
+
+    private val _pomodoroTotalTime = MutableStateFlow(25 * 60)
+    val pomodoroTotalTime: StateFlow<Int> = _pomodoroTotalTime.asStateFlow()
+
+    private val _pomodoroIsFocus = MutableStateFlow(true)
+    val pomodoroIsFocus: StateFlow<Boolean> = _pomodoroIsFocus.asStateFlow()
+
+    private val _pomodoroCompletedCount = MutableStateFlow(sharedPrefs.getInt("pomodoro_completed_count", 0))
+    val pomodoroCompletedCount: StateFlow<Int> = _pomodoroCompletedCount.asStateFlow()
+
+    private val _pomodoroSelectedFocusMin = MutableStateFlow(sharedPrefs.getInt("pomodoro_focus_min", 25))
+    val pomodoroSelectedFocusMin: StateFlow<Int> = _pomodoroSelectedFocusMin.asStateFlow()
+
+    private val _pomodoroSelectedBreakMin = MutableStateFlow(sharedPrefs.getInt("pomodoro_break_min", 5))
+    val pomodoroSelectedBreakMin: StateFlow<Int> = _pomodoroSelectedBreakMin.asStateFlow()
+
+    private var pomodoroJob: kotlinx.coroutines.Job? = null
+
+    fun setPomodoroDurations(focusMin: Int, breakMin: Int) {
+        sharedPrefs.edit().putInt("pomodoro_focus_min", focusMin).putInt("pomodoro_break_min", breakMin).apply()
+        _pomodoroSelectedFocusMin.value = focusMin
+        _pomodoroSelectedBreakMin.value = breakMin
+        resetPomodoro()
+    }
+
+    fun startPomodoro() {
+        if (_pomodoroIsRunning.value) return
+        _pomodoroIsRunning.value = true
+        pomodoroJob = viewModelScope.launch {
+            while (_pomodoroRemainingTime.value > 0) {
+                kotlinx.coroutines.delay(1000)
+                _pomodoroRemainingTime.value -= 1
+            }
+            // Completed!
+            _pomodoroIsRunning.value = false
+            if (_pomodoroIsFocus.value) {
+                _pomodoroCompletedCount.value += 1
+                sharedPrefs.edit().putInt("pomodoro_completed_count", _pomodoroCompletedCount.value).apply()
+                _pomodoroIsFocus.value = false
+                _pomodoroRemainingTime.value = _pomodoroSelectedBreakMin.value * 60
+                _pomodoroTotalTime.value = _pomodoroSelectedBreakMin.value * 60
+            } else {
+                _pomodoroIsFocus.value = true
+                _pomodoroRemainingTime.value = _pomodoroSelectedFocusMin.value * 60
+                _pomodoroTotalTime.value = _pomodoroSelectedFocusMin.value * 60
+            }
+        }
+    }
+
+    fun pausePomodoro() {
+        pomodoroJob?.cancel()
+        _pomodoroIsRunning.value = false
+    }
+
+    fun resetPomodoro() {
+        pomodoroJob?.cancel()
+        _pomodoroIsRunning.value = false
+        val mins = if (_pomodoroIsFocus.value) _pomodoroSelectedFocusMin.value else _pomodoroSelectedBreakMin.value
+        _pomodoroRemainingTime.value = mins * 60
+        _pomodoroTotalTime.value = mins * 60
+    }
+
+    fun togglePomodoroMode() {
+        pomodoroJob?.cancel()
+        _pomodoroIsRunning.value = false
+        _pomodoroIsFocus.value = !_pomodoroIsFocus.value
+        val mins = if (_pomodoroIsFocus.value) _pomodoroSelectedFocusMin.value else _pomodoroSelectedBreakMin.value
+        _pomodoroRemainingTime.value = mins * 60
+        _pomodoroTotalTime.value = mins * 60
+    }
+
+    // Habit classes
+    data class Habit(
+        val id: String,
+        val name: String,
+        val completedDates: Set<String>,
+        val streak: Int
+    )
+
+    private val _habitsList = MutableStateFlow<List<Habit>>(emptyList())
+    val habitsList: StateFlow<List<Habit>> = _habitsList.asStateFlow()
+
+    private fun loadHabits() {
+        val habitsStr = sharedPrefs.getString("habits_list_json", "[]") ?: "[]"
+        try {
+            val arr = JSONArray(habitsStr)
+            val list = mutableListOf<Habit>()
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val datesArr = obj.getJSONArray("completedDates")
+                val dates = mutableSetOf<String>()
+                for (j in 0 until datesArr.length()) {
+                    dates.add(datesArr.getString(j))
+                }
+                list.add(
+                    Habit(
+                        id = obj.getString("id"),
+                        name = obj.getString("name"),
+                        completedDates = dates,
+                        streak = obj.optInt("streak", 0)
+                    )
+                )
+            }
+            _habitsList.value = list
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun saveHabits(list: List<Habit>) {
+        try {
+            val arr = JSONArray()
+            list.forEach { habit ->
+                val obj = JSONObject()
+                obj.put("id", habit.id)
+                obj.put("name", habit.name)
+                val datesArr = JSONArray()
+                habit.completedDates.forEach { datesArr.put(it) }
+                obj.put("completedDates", datesArr)
+                obj.put("streak", habit.streak)
+                arr.put(obj)
+            }
+            sharedPrefs.edit().putString("habits_list_json", arr.toString()).apply()
+            _habitsList.value = list
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun addHabit(name: String) {
+        val newList = _habitsList.value.toMutableList()
+        newList.add(Habit(UUID.randomUUID().toString(), name, emptySet(), 0))
+        saveHabits(newList)
+    }
+
+    fun toggleHabitDay(habitId: String, dateString: String) {
+        val newList = _habitsList.value.map { habit ->
+            if (habit.id == habitId) {
+                val newDates = habit.completedDates.toMutableSet()
+                if (newDates.contains(dateString)) {
+                    newDates.remove(dateString)
+                } else {
+                    newDates.add(dateString)
+                }
+                
+                // Calculate streak
+                var currentStreak = 0
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+                val cal = Calendar.getInstance()
+                
+                // check backwards starting today
+                while (true) {
+                    val dateStr = sdf.format(cal.time)
+                    if (newDates.contains(dateStr)) {
+                        currentStreak++
+                        cal.add(Calendar.DAY_OF_YEAR, -1)
+                    } else {
+                        val todayStr = sdf.format(Date())
+                        if (dateStr == todayStr) {
+                            cal.add(Calendar.DAY_OF_YEAR, -1)
+                            val yesterdayStr = sdf.format(cal.time)
+                            if (newDates.contains(yesterdayStr)) {
+                                continue
+                            }
+                        }
+                        break
+                    }
+                }
+                habit.copy(completedDates = newDates, streak = currentStreak)
+            } else {
+                habit
+            }
+        }
+        saveHabits(newList)
+    }
+
+    fun deleteHabit(habitId: String) {
+        val newList = _habitsList.value.filter { habit -> habit.id != habitId }
+        saveHabits(newList)
+    }
+
+    // Subtask classes
+    data class Subtask(
+        val id: String,
+        val name: String,
+        val isCompleted: Boolean
+    )
+
+    private val _subtasksList = MutableStateFlow<Map<Long, List<Subtask>>>(emptyMap())
+    val subtasksList: StateFlow<Map<Long, List<Subtask>>> = _subtasksList.asStateFlow()
+
+    private fun loadSubtasks() {
+        val subtasksStr = sharedPrefs.getString("subtasks_list_json", "{}") ?: "{}"
+        try {
+            val obj = JSONObject(subtasksStr)
+            val map = mutableMapOf<Long, List<Subtask>>()
+            val keys = obj.keys()
+            while (keys.hasNext()) {
+                val keyStr = keys.next()
+                val courseId = keyStr.toLong()
+                val arr = obj.getJSONArray(keyStr)
+                val list = mutableListOf<Subtask>()
+                for (i in 0 until arr.length()) {
+                    val subObj = arr.getJSONObject(i)
+                    list.add(
+                        Subtask(
+                            id = subObj.getString("id"),
+                            name = subObj.getString("name"),
+                            isCompleted = subObj.getBoolean("isCompleted")
+                        )
+                    )
+                }
+                map[courseId] = list
+            }
+            _subtasksList.value = map
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun saveSubtasks(map: Map<Long, List<Subtask>>) {
+        try {
+            val obj = JSONObject()
+            map.forEach { (courseId, list) ->
+                val arr = JSONArray()
+                list.forEach { subtask ->
+                    val subObj = JSONObject()
+                    subObj.put("id", subtask.id)
+                    subObj.put("name", subtask.name)
+                    subObj.put("isCompleted", subtask.isCompleted)
+                    arr.put(subObj)
+                }
+                obj.put(courseId.toString(), arr)
+            }
+            sharedPrefs.edit().putString("subtasks_list_json", obj.toString()).apply()
+            _subtasksList.value = map
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun addSubtask(courseId: Long, name: String) {
+        val map = _subtasksList.value.toMutableMap()
+        val list = (map[courseId] ?: emptyList()).toMutableList()
+        list.add(Subtask(UUID.randomUUID().toString(), name, false))
+        map[courseId] = list
+        saveSubtasks(map)
+    }
+
+    fun toggleSubtask(courseId: Long, subtaskId: String) {
+        val map = _subtasksList.value.toMutableMap()
+        val list = (map[courseId] ?: emptyList()).map { subtask ->
+            if (subtask.id == subtaskId) {
+                subtask.copy(isCompleted = !subtask.isCompleted)
+            } else {
+                subtask
+            }
+        }
+        map[courseId] = list
+        saveSubtasks(map)
+    }
+
+    fun deleteSubtask(courseId: Long, subtaskId: String) {
+        val map = _subtasksList.value.toMutableMap()
+        val list = (map[courseId] ?: emptyList()).filter { subtask -> subtask.id != subtaskId }
+        map[courseId] = list
+        saveSubtasks(map)
+    }
+
     init {
+        loadHabits()
+        loadSubtasks()
+        
         val courseDao = CourseDatabase.getDatabase(application).courseDao()
         repository = CourseRepository(courseDao)
 
@@ -290,7 +627,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val indices = mutableListOf<Int>()
         val clean = daysStr.replace("،", " ").replace(",", " ")
         if (clean.contains("الأحد") || clean.contains("الاحد")) indices.add(0)
-        if (clean.contains("الاثنين") || clean.contains("الاثنين")) indices.add(1)
+        if (clean.contains("الاثنين") || clean.contains("الإثنين")) indices.add(1)
         if (clean.contains("الثلاثاء")) indices.add(2)
         if (clean.contains("الأربعاء") || clean.contains("الاربعاء")) indices.add(3)
         if (clean.contains("الخميس")) indices.add(4)
@@ -324,7 +661,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         targetCount: Int,
         isActive: Boolean,
         reminderLeadMinutes: Int = 15,
-        colorHex: String = "#2563EB"
+        colorHex: String = "#2563EB",
+        category: String = "عام"
     ) {
         viewModelScope.launch {
             val daysStr = mapIndicesToArabicDays(days)
@@ -340,7 +678,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 completedCount = 0,
                 targetCount = targetCount,
                 reminderLeadMinutes = reminderLeadMinutes,
-                colorHex = colorHex
+                colorHex = colorHex,
+                category = category
             )
 
             // Check for conflict overlaps
@@ -521,6 +860,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             cancelSystemAlarm(getApplication(), reminder)
             repository.deleteReminder(reminder)
+        }
+    }
+
+    fun clearAllReminders(context: Context) {
+        viewModelScope.launch {
+            allReminders.value.forEach { reminder ->
+                cancelSystemAlarm(context, reminder)
+                repository.deleteReminder(reminder)
+            }
         }
     }
 

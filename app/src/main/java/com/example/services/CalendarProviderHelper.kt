@@ -137,7 +137,7 @@ object CalendarProviderHelper {
         val list = mutableListOf<Int>()
         val clean = daysStr.replace("،", " ").replace(",", " ")
         if (clean.contains("الأحد") || clean.contains("الاحد")) list.add(Calendar.SUNDAY)
-        if (clean.contains("الاثنين") || clean.contains("الاثنين")) list.add(Calendar.MONDAY)
+        if (clean.contains("الاثنين") || clean.contains("الإثنين")) list.add(Calendar.MONDAY)
         if (clean.contains("الثلاثاء")) list.add(Calendar.TUESDAY)
         if (clean.contains("الأربعاء") || clean.contains("الاربعاء")) list.add(Calendar.WEDNESDAY)
         if (clean.contains("الخميس")) list.add(Calendar.THURSDAY)

@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Notifications
@@ -26,6 +28,9 @@ import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.List
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Share
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.Archive
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.*
@@ -54,6 +59,7 @@ import com.example.models.Course
 import com.example.models.SessionInfo
 import com.example.services.SchedulerUtils
 import com.example.screens.LocalAppLanguage
+import com.example.ui.material3_foundation.AppTheme
 import com.example.screens.Loc
 import com.example.widgets.CourseCard
 import java.text.SimpleDateFormat
@@ -147,7 +153,7 @@ private fun getCourseSpecialty(name: String, currentLang: String): String {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun ScheduleTab(
     courses: List<Course>,
@@ -161,7 +167,8 @@ fun ScheduleTab(
     context: Context,
     onCourseUpdated: (Course) -> Unit,
     onExportCSV: () -> Unit = {},
-    onRefresh: () -> Unit = {}
+    onRefresh: () -> Unit = {},
+    onAddCourseClick: () -> Unit = {}
 ) {
     val currentLang = LocalAppLanguage.current
     val loc = remember(currentLang) { Loc(currentLang) }
@@ -213,14 +220,15 @@ fun ScheduleTab(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(24.dp)
+                    .testTag("schedule_empty_state_card"),
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier.padding(28.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Image(
@@ -229,14 +237,15 @@ fun ScheduleTab(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(160.dp)
-                            .clip(RoundedCornerShape(16.dp)),
+                            .clip(RoundedCornerShape(16.dp))
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f), RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
                     Text(
-                        text = if (currentLang == "ar") "ابدأ رحلة الدراسة الذكية" else "Start Smart Learning Journey",
+                        text = if (currentLang == "ar") "ابدأ رحلة الدراسة الذكية 🎓" else "Start Smart Learning Journey 🎓",
                         color = MaterialTheme.colorScheme.primary,
-                        fontSize = 18.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.ExtraBold,
                         textAlign = TextAlign.Center
                     )
@@ -248,18 +257,50 @@ fun ScheduleTab(
                             "Add your first course manually to organize schedules, calculate periods, and track study hours!"
                         },
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.bodyMedium,
                         textAlign = TextAlign.Center,
-                        lineHeight = 18.sp
+                        lineHeight = 20.sp
                     )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Button(
+                        onClick = onAddCourseClick,
+                        modifier = Modifier
+                            .testTag("schedule_empty_state_add_course_button")
+                            .height(48.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Add,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (currentLang == "ar") "إضافة دورتك الأولى" else "Add Your First Course",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
     } else {
+        var viewMode by remember { mutableStateOf("list") } // "list" or "calendar"
         var searchQuery by remember { mutableStateOf("") }
         val allFilterVal = if (currentLang == "ar") "الكل" else "All"
         var selectedStatusFilter by remember { mutableStateOf(allFilterVal) }
         var selectedSpecialtyFilter by remember { mutableStateOf(allFilterVal) }
+
+        var isSelectionModeActive by remember { mutableStateOf(false) }
+        val selectedCourseIds = remember { mutableStateListOf<Int>() }
+
+        fun exitSelectionMode() {
+            isSelectionModeActive = false
+            selectedCourseIds.clear()
+        }
 
         val filteredCourses = remember(courses, searchQuery, selectedStatusFilter, selectedSpecialtyFilter, currentLang) {
             courses.filter { course ->
@@ -282,6 +323,237 @@ fun ScheduleTab(
         }
 
         Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(14.dp)
+                    )
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                val listLabel = if (currentLang == "ar") "قائمة الدورات" else "Course List"
+                val calendarLabel = if (currentLang == "ar") "تقويم المحاضرات" else "Lectures Calendar"
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (viewMode == "list") MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .clickable { viewMode = "list" }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = listLabel,
+                        style = AppTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = if (viewMode == "list") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (viewMode == "calendar") MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .clickable { viewMode = "calendar" }
+                        .padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = calendarLabel,
+                        style = AppTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = if (viewMode == "calendar") Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    )
+                }
+            }
+
+            if (viewMode == "calendar") {
+                com.example.ui.features.calendar.CalendarScreen(
+                    courses = courses,
+                    onCourseUpdated = onCourseUpdated,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                AnimatedVisibility(
+                visible = isSelectionModeActive,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 6.dp)
+                        .testTag("selection_control_panel"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            IconButton(
+                                onClick = { exitSelectionMode() },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Close,
+                                    contentDescription = "Exit selection",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Column {
+                                Text(
+                                    text = if (currentLang == "ar") "وضع التحديد المتعدد" else "Multi-Selection Mode",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = if (currentLang == "ar") "تم اختيار ${selectedCourseIds.size} دورة" else "${selectedCourseIds.size} courses selected",
+                                    fontSize = 11.sp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val allCurrentlyFilteredSelected = filteredCourses.isNotEmpty() && filteredCourses.all { selectedCourseIds.contains(it.id) }
+                            TextButton(
+                                onClick = {
+                                    if (allCurrentlyFilteredSelected) {
+                                        filteredCourses.forEach { selectedCourseIds.remove(it.id) }
+                                    } else {
+                                        filteredCourses.forEach { 
+                                            if (!selectedCourseIds.contains(it.id)) {
+                                                selectedCourseIds.add(it.id)
+                                            }
+                                        }
+                                    }
+                                },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            ) {
+                                Text(
+                                    text = if (allCurrentlyFilteredSelected) {
+                                        (if (currentLang == "ar") "إلغاء تحديد الكل" else "Deselect All")
+                                    } else {
+                                        (if (currentLang == "ar") "تحديد الكل" else "Select All")
+                                    },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (selectedCourseIds.isEmpty()) return@IconButton
+                                    val toArchive = courses.filter { selectedCourseIds.contains(it.id) }
+                                    toArchive.forEach { course ->
+                                        onCourseUpdated(course.copy(status = "غير نشط"))
+                                    }
+                                    val msg = if (currentLang == "ar") "تم أرشفة الدورات المحددة بنجاح!" else "Selected courses archived successfully!"
+                                    Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                    exitSelectionMode()
+                                },
+                                enabled = selectedCourseIds.isNotEmpty(),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Archive,
+                                    contentDescription = "Archive selected",
+                                    tint = if (selectedCourseIds.isNotEmpty()) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+                                )
+                            }
+
+                            var showDeleteConfirmation by remember { mutableStateOf(false) }
+
+                            if (showDeleteConfirmation) {
+                                AlertDialog(
+                                    onDismissRequest = { showDeleteConfirmation = false },
+                                    title = {
+                                        Text(
+                                            text = if (currentLang == "ar") "تأكيد الحذف الجماعي" else "Confirm Bulk Delete",
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    text = {
+                                        Text(
+                                            text = if (currentLang == "ar") {
+                                                "هل أنت متأكد من رغبتك في حذف ${selectedCourseIds.size} من الدورات المحددة نهائياً؟ لا يمكن التراجع عن هذا الإجراء."
+                                            } else {
+                                                "Are you sure you want to permanently delete ${selectedCourseIds.size} selected courses? This action cannot be undone."
+                                            }
+                                        )
+                                    },
+                                    confirmButton = {
+                                        Button(
+                                            onClick = {
+                                                val toDelete = courses.filter { selectedCourseIds.contains(it.id) }
+                                                toDelete.forEach { course ->
+                                                    onDelete(course)
+                                                }
+                                                val msg = if (currentLang == "ar") "تم حذف الدورات المحددة بنجاح!" else "Selected courses deleted successfully!"
+                                                Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+                                                showDeleteConfirmation = false
+                                                exitSelectionMode()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.error
+                                            )
+                                        ) {
+                                            Text(if (currentLang == "ar") "حذف" else "Delete", fontWeight = FontWeight.Bold)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        TextButton(onClick = { showDeleteConfirmation = false }) {
+                                            Text(if (currentLang == "ar") "إلغاء" else "Cancel")
+                                        }
+                                    }
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    if (selectedCourseIds.isNotEmpty()) {
+                                        showDeleteConfirmation = true
+                                    }
+                                },
+                                enabled = selectedCourseIds.isNotEmpty(),
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Delete,
+                                    contentDescription = "Delete selected",
+                                    tint = if (selectedCourseIds.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.4f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // High-visibility, prominent sticky Search and Filter Controls Panel at the top
             Card(
                 modifier = Modifier
@@ -310,8 +582,40 @@ fun ScheduleTab(
                             text = if (currentLang == "ar") "البحث وتصنيف الدورات التدريبية" else "Search & Filter Course List",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
                         )
+                        
+                        TextButton(
+                            onClick = {
+                                if (isSelectionModeActive) {
+                                    exitSelectionMode()
+                                } else {
+                                    isSelectionModeActive = true
+                                }
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = if (isSelectionModeActive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("multi_select_toggle_button")
+                        ) {
+                            Icon(
+                                imageVector = if (isSelectionModeActive) Icons.Rounded.Close else Icons.Rounded.List,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (isSelectionModeActive) {
+                                    (if (currentLang == "ar") "إلغاء التحديد" else "Cancel Select")
+                                } else {
+                                    (if (currentLang == "ar") "تحديد متعدد" else "Select Multiple")
+                                },
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -475,8 +779,8 @@ fun ScheduleTab(
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)
-                    .padding(horizontal = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
                     Card(
@@ -927,23 +1231,48 @@ fun ScheduleTab(
                     }
                 }
             } else {
-                items(filteredCourses) { course ->
+                items(filteredCourses, key = { it.id }) { course ->
                     val isCourseActive = course.status == "نشط"
-                    CourseCard(
-                        course = course,
-                        isCourseActive = isCourseActive,
-                        onCalculate = { onCalculate(course) },
-                        onEdit = { onEdit(course) },
-                        onDelete = { onDelete(course) },
-                        onTestAlarm = { onTestAlarm(course) },
-                        clipboardManager = clipboardManager,
-                        context = context,
-                        onCourseUpdated = onCourseUpdated
-                    )
+                    val isSelected = selectedCourseIds.contains(course.id)
+                    Box(
+                        modifier = Modifier
+                            .animateItem()
+                            .fillMaxWidth()
+                    ) {
+                        CourseCard(
+                            course = course,
+                            isCourseActive = isCourseActive,
+                            onCalculate = { onCalculate(course) },
+                            onEdit = { onEdit(course) },
+                            onDelete = { onDelete(course) },
+                            onTestAlarm = { onTestAlarm(course) },
+                            clipboardManager = clipboardManager,
+                            context = context,
+                            onCourseUpdated = onCourseUpdated,
+                            isSelectionModeActive = isSelectionModeActive,
+                            isSelected = isSelected,
+                            onSelectedChange = { checked ->
+                                if (checked) {
+                                    if (!selectedCourseIds.contains(course.id)) {
+                                        selectedCourseIds.add(course.id)
+                                    }
+                                } else {
+                                    selectedCourseIds.remove(course.id)
+                                }
+                            },
+                            onLongClick = {
+                                if (!isSelectionModeActive) {
+                                    isSelectionModeActive = true
+                                    selectedCourseIds.add(course.id)
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
 }
 }
 }

@@ -7,11 +7,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,7 +32,7 @@ fun AddEditCourseDialog(
     course: Course?,
     existingCourses: List<Course>,
     onDismiss: () -> Unit,
-    onConfirm: (String, List<Int>, String, String, String, Int, Boolean, Int, String) -> Unit
+    onConfirm: (String, List<Int>, String, String, String, Int, Boolean, Int, String, String) -> Unit
 ) {
     val primaryColor = MaterialTheme.colorScheme.primary
     var name by remember { mutableStateOf(course?.name ?: "") }
@@ -43,6 +43,7 @@ fun AddEditCourseDialog(
     var isActive by remember { mutableStateOf(course?.status == "نشط" || course == null) }
     var reminderLeadMinutes by remember { mutableStateOf(course?.reminderLeadMinutes ?: 15) }
     var selectedColorHex by remember { mutableStateOf(course?.colorHex ?: "#2563EB") }
+    var category by remember { mutableStateOf(course?.category ?: "عام") }
 
     var showConflictConfirmDialog by remember { mutableStateOf(false) }
 
@@ -53,7 +54,7 @@ fun AddEditCourseDialog(
     }
     val selectedDays = remember { mutableStateListOf<Int>().apply { addAll(initialDays) } }
 
-    val conflicts = remember(name, selectedDays.toList(), startTime, endTime, isActive, selectedColorHex, targetCount) {
+    val conflicts = remember(name, selectedDays.toList(), startTime, endTime, isActive, selectedColorHex, targetCount, category) {
         val daysStr = mapIndicesToArabicDays(selectedDays.toList().sorted())
         val tempCourse = Course(
             id = course?.id ?: 0,
@@ -66,7 +67,8 @@ fun AddEditCourseDialog(
             completedCount = course?.completedCount ?: 0,
             targetCount = targetCount.toIntOrNull() ?: 12,
             reminderLeadMinutes = reminderLeadMinutes,
-            colorHex = selectedColorHex
+            colorHex = selectedColorHex,
+            category = category
         )
         com.example.services.ConflictDetector.findConflicts(tempCourse, existingCourses)
     }
@@ -85,188 +87,479 @@ fun AddEditCourseDialog(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                .padding(vertical = 12.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 10.dp)
         ) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
             ) {
+                // Dialog Header
                 item {
-                    Text(
-                        text = if (course == null) "إضافة دورة جديدة" else "تعديل تفاصيل الدورة",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = primaryColor,
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                }
-
-                // Course name
-                item {
-                    Column {
-                        Text("اسم الدورة التدريبية", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            placeholder = { Text("CMA PART 1 - October") },
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("course_name_input"),
-                            shape = RoundedCornerShape(8.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                .size(56.dp)
+                                .background(primaryColor.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (course == null) Icons.Rounded.AddBox else Icons.Rounded.EditCalendar,
+                                contentDescription = null,
+                                tint = primaryColor,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = if (course == null) "إضافة دورة جديدة" else "تعديل تفاصيل الدورة",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = if (course == null) "أدخل تفاصيل الدورة التدريبية ومواعيد البث بوضوح" else "قم بتحديث المواعيد والمعلومات الأساسية",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                 }
 
-                // Days picker Row
+                // Course name card
                 item {
-                    Column {
-                        Text("أيام البث (اختر يومًا أو أكثر)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        
-                        FlowRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            mainAxisSpacing = 6.dp,
-                            crossAxisSpacing = 6.dp
-                        ) {
-                            daysOptions.forEach { p ->
-                                val isSelected = selectedDays.contains(p.first)
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = {
-                                        if (isSelected) selectedDays.remove(p.first)
-                                        else selectedDays.add(p.first)
-                                    },
-                                    label = { Text(p.second, fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = primaryColor,
-                                        selectedLabelColor = Color.White
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Book,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "اسم الدورة التدريبية",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                placeholder = { Text("مثال: دورة إدارة الأعمال CMA") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("course_name_input"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                ),
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+
+                // Category Section
+                item {
+                    val currentLang = com.example.screens.LocalAppLanguage.current
+                    val isAr = currentLang == "ar"
+                    val predefinedCategories = if (isAr) {
+                        listOf("عام", "محاسبة", "إدارة مالية", "تقنية", "لغات")
+                    } else {
+                        listOf("General", "Accounting", "Financial Management", "Technology", "Languages")
+                    }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Category,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    if (isAr) "التصنيف / مجال الدراسة" else "Category / Subject Area",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = category,
+                                onValueChange = { category = it },
+                                placeholder = { Text(if (isAr) "اكتب أو اختر تصنيفاً..." else "Type or select a category...") },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .testTag("course_category_input"),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = primaryColor,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                ),
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            // Predefined chips
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                predefinedCategories.forEach { cat ->
+                                    val isSelected = category.trim().equals(cat.trim(), ignoreCase = true)
+                                    InputChip(
+                                        selected = isSelected,
+                                        onClick = { category = cat },
+                                        label = { Text(cat, fontSize = 11.sp) },
+                                        colors = InputChipDefaults.inputChipColors(
+                                            selectedContainerColor = primaryColor.copy(alpha = 0.2f),
+                                            selectedLabelColor = primaryColor
+                                        ),
+                                        border = if (isSelected) {
+                                            BorderStroke(1.dp, primaryColor)
+                                        } else {
+                                            BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                                        }
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
 
-                // Timings Row
+                // Days Picker Section
                 item {
-                    Row(
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("البدء (م / ص)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            OutlinedTextField(
-                                value = startTime,
-                                onValueChange = { startTime = it },
-                                placeholder = { Text("06:15 م") },
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.CalendarMonth,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "أيام البث (اختر يومًا أو أكثر)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            
+                            FlowRow(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                            )
+                                mainAxisSpacing = 8.dp,
+                                crossAxisSpacing = 8.dp
+                            ) {
+                                daysOptions.forEach { p ->
+                                    val isSelected = selectedDays.contains(p.first)
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) primaryColor else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable {
+                                                if (isSelected) selectedDays.remove(p.first)
+                                                else selectedDays.add(p.first)
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            if (isSelected) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.CheckCircle,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(14.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = p.second,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("الانتهاء", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            OutlinedTextField(
-                                value = endTime,
-                                onValueChange = { endTime = it },
-                                placeholder = { Text("10:00 م") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(8.dp),
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                            )
-                        }
                     }
                 }
 
-                // Zoom Info
+                // Timings Row Card
                 item {
-                    Column {
-                        Text("حساب Zoom المخصص", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = zoomAccount,
-                            onValueChange = { zoomAccount = it },
-                            placeholder = { Text("support.xx@fin.com.sa") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                    }
-                }
-
-                // Target Count / Total Lectures
-                item {
-                    Column {
-                        Text("عدد محاضرات الدورة (المحاضرات الكلية)", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        OutlinedTextField(
-                            value = targetCount,
-                            onValueChange = { targetCount = it },
-                            placeholder = { Text("12") },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("course_target_count_input"),
-                            shape = RoundedCornerShape(8.dp),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                    }
-                }
-
-                // Active check
-                item {
-                    Row(
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                     ) {
-                        Text("حالة الدورة (نشطة)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Switch(
-                            checked = isActive,
-                            onCheckedChange = { isActive = it },
-                            colors = SwitchDefaults.colors(checkedThumbColor = primaryColor)
-                        )
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Schedule,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "توقيت البث المباشر",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "البدء (م / ص)",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    OutlinedTextField(
+                                        value = startTime,
+                                        onValueChange = { startTime = it },
+                                        placeholder = { Text("06:15 م") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = primaryColor,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                        ),
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        "الانتهاء",
+                                        fontSize = 10.sp,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    OutlinedTextField(
+                                        value = endTime,
+                                        onValueChange = { endTime = it },
+                                        placeholder = { Text("10:00 م") },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedBorderColor = primaryColor,
+                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                        ),
+                                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
-                // Lead time choice for notifications
+                // Account & Lectures Info Card
                 item {
-                    Column {
-                        Text("توقيت التنبيه التلقائي قبل البث المباشر", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            listOf(15, 30).forEach { mins ->
-                                val isSelected = reminderLeadMinutes == mins
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { reminderLeadMinutes = mins },
-                                    label = { Text("قَبْل البث بـ $mins دقيقة", fontSize = 11.sp, fontWeight = FontWeight.Bold) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = primaryColor,
-                                        selectedLabelColor = Color.White
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Zoom Account
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.AccountCircle,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "حساب Zoom المخصص",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                OutlinedTextField(
+                                    value = zoomAccount,
+                                    onValueChange = { zoomAccount = it },
+                                    placeholder = { Text("support.xx@fin.com.sa") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = primaryColor,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
                                     ),
-                                    modifier = Modifier.weight(1f)
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium)
+                                )
+                            }
+
+                            // Total Lectures
+                            Column {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Numbers,
+                                        contentDescription = null,
+                                        tint = primaryColor,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        "عدد محاضرات الدورة الكلي",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                OutlinedTextField(
+                                    value = targetCount,
+                                    onValueChange = { targetCount = it },
+                                    placeholder = { Text("12") },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .testTag("course_target_count_input"),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = primaryColor,
+                                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
                         }
                     }
                 }
 
-                // Distinct Custom Color Picker (New Beautiful Feature)
+                // Reminder Lead Card
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "توقيت التنبيه التلقائي قبل البث المباشر",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                listOf(15, 30).forEach { mins ->
+                                    val isSelected = reminderLeadMinutes == mins
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(
+                                                if (isSelected) primaryColor else MaterialTheme.colorScheme.surface
+                                            )
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isSelected) primaryColor else MaterialTheme.colorScheme.outlineVariant,
+                                                shape = RoundedCornerShape(12.dp)
+                                            )
+                                            .clickable { reminderLeadMinutes = mins }
+                                            .padding(vertical = 10.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "قبل البث بـ $mins دقيقة",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Custom Card Color Picker Card
                 item {
                     val colorOptions = listOf(
                         Pair("#2563EB", "أزرق ملكي"),
@@ -277,46 +570,111 @@ fun AddEditCourseDialog(
                         Pair("#D97706", "ذهبي/برتقالي"),
                         Pair("#DB2777", "وردي")
                     )
-                    Column {
-                        Text("اللون المميز للبطاقة والدورة", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(6.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            colorOptions.forEach { (hex, colorName) ->
-                                val parsedColor = try {
-                                    Color(android.graphics.Color.parseColor(hex))
-                                } catch (e: Exception) {
-                                    primaryColor
-                                }
-                                val isChosen = selectedColorHex.equals(hex, ignoreCase = true)
-                                
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(parsedColor)
-                                        .border(
-                                            width = if (isChosen) 3.dp else 1.dp,
-                                            color = if (isChosen) MaterialTheme.colorScheme.onSurface else Color.Transparent,
-                                            shape = CircleShape
-                                        )
-                                        .clickable { selectedColorHex = hex }
-                                        .testTag("color_choice_$hex"),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    if (isChosen) {
-                                        Icon(
-                                            imageVector = Icons.Rounded.Check,
-                                            contentDescription = colorName,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Palette,
+                                    contentDescription = null,
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "اللون المميز للبطاقة والدورة",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                colorOptions.forEach { (hex, colorName) ->
+                                    val parsedColor = try {
+                                        Color(android.graphics.Color.parseColor(hex))
+                                    } catch (e: Exception) {
+                                        primaryColor
+                                    }
+                                    val isChosen = selectedColorHex.equals(hex, ignoreCase = true)
+                                    
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(parsedColor)
+                                            .border(
+                                                width = if (isChosen) 3.dp else 0.dp,
+                                                color = if (isChosen) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                                                shape = CircleShape
+                                            )
+                                            .clickable { selectedColorHex = hex }
+                                            .testTag("color_choice_$hex"),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isChosen) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = colorName,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(14.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+
+                // Active Switch Status Card
+                item {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (isActive) Icons.Rounded.OfflinePin else Icons.Rounded.Cancel,
+                                    contentDescription = null,
+                                    tint = if (isActive) Color(0xFF10B981) else MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Text(
+                                    "حالة الدورة (نشطة تلقائياً)",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            Switch(
+                                checked = isActive,
+                                onCheckedChange = { isActive = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = primaryColor
+                                )
+                            )
                         }
                     }
                 }
@@ -329,11 +687,11 @@ fun AddEditCourseDialog(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
                             ),
-                            shape = RoundedCornerShape(12.dp),
+                            shape = RoundedCornerShape(16.dp),
                             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                         ) {
                             Row(
-                                modifier = Modifier.padding(12.dp),
+                                modifier = Modifier.padding(14.dp),
                                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -363,19 +721,25 @@ fun AddEditCourseDialog(
                     }
                 }
 
-                // Confirm actions
+                // Confirm Actions Bar
                 item {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         OutlinedButton(
                             onClick = onDismiss,
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(8.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp),
+                            shape = RoundedCornerShape(14.dp)
                         ) {
-                            Text("إلغاء", fontWeight = FontWeight.Bold)
+                            Text(
+                                "إلغاء",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
                         }
 
                         Button(
@@ -393,18 +757,38 @@ fun AddEditCourseDialog(
                                         targetCount.toIntOrNull() ?: 12,
                                         isActive,
                                         reminderLeadMinutes,
-                                        selectedColorHex
+                                        selectedColorHex,
+                                        category
                                     )
                                 }
                             },
                             enabled = name.trim().isNotEmpty(),
                             modifier = Modifier
-                                .weight(1f)
+                                .weight(1.2f)
+                                .height(48.dp)
                                 .testTag("save_course_button"),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor)
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = primaryColor,
+                                disabledContainerColor = primaryColor.copy(alpha = 0.4f)
+                            ),
+                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp)
                         ) {
-                            Text("حفظ", fontWeight = FontWeight.Bold)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.Save,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    "حفظ الدورة",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -449,19 +833,24 @@ fun AddEditCourseDialog(
                             targetCount.toIntOrNull() ?: 12,
                             isActive,
                             reminderLeadMinutes,
-                            selectedColorHex
+                            selectedColorHex,
+                            category
                         )
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text("تأكيد وحفظ الموعد", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConflictConfirmDialog = false }) {
+                TextButton(
+                    onClick = { showConflictConfirmDialog = false }
+                ) {
                     Text("إلغاء وتعديل الوقت", fontWeight = FontWeight.Bold)
                 }
-            }
+            },
+            shape = RoundedCornerShape(20.dp)
         )
     }
 }
@@ -537,4 +926,3 @@ private fun mapIndicesToArabicDays(indices: List<Int>): String {
         }
     }.filter { it.isNotEmpty() }.joinToString("، ")
 }
-

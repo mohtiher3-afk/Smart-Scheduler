@@ -3,6 +3,13 @@ package com.example.widgets
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,6 +64,7 @@ import com.example.models.Course
 import com.example.services.SchedulerUtils
 import com.example.screens.LocalAppLanguage
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun CourseCard(
     course: Course,
@@ -67,7 +75,11 @@ fun CourseCard(
     onTestAlarm: () -> Unit,
     clipboardManager: androidx.compose.ui.platform.ClipboardManager,
     context: Context,
-    onCourseUpdated: (Course) -> Unit
+    onCourseUpdated: (Course) -> Unit,
+    isSelectionModeActive: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectedChange: (Boolean) -> Unit = {},
+    onLongClick: () -> Unit = {}
 ) {
     val currentLang = LocalAppLanguage.current
     val primaryColor = MaterialTheme.colorScheme.primary
@@ -166,11 +178,23 @@ fun CourseCard(
 
     // Under Material 3, we use Card with modern surface colors Tinted Subtly by custom color
     Card(
-        onClick = { showLectureChecklist = !showLectureChecklist },
-        interactionSource = interactionSource,
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer(scaleX = scale, scaleY = scale)
+            .combinedClickable(
+                interactionSource = interactionSource,
+                indication = androidx.compose.foundation.LocalIndication.current,
+                onClick = {
+                    if (isSelectionModeActive) {
+                        onSelectedChange(!isSelected)
+                    } else {
+                        showLectureChecklist = !showLectureChecklist
+                    }
+                },
+                onLongClick = {
+                    onLongClick()
+                }
+            )
             .testTag("course_card_${course.id}"),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -190,6 +214,28 @@ fun CourseCard(
                     .fillMaxHeight()
                     .background(customCardColor)
             )
+            AnimatedVisibility(
+                visible = isSelectionModeActive,
+                enter = expandHorizontally() + fadeIn(),
+                exit = shrinkHorizontally() + fadeOut()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(start = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Checkbox(
+                        checked = isSelected,
+                        onCheckedChange = { onSelectedChange(it) },
+                        colors = CheckboxDefaults.colors(
+                            checkedColor = customCardColor,
+                            checkmarkColor = Color.White
+                        ),
+                        modifier = Modifier.testTag("course_card_checkbox_${course.id}")
+                    )
+                }
+            }
             Column(
                 modifier = Modifier
                     .weight(1f)
@@ -202,15 +248,37 @@ fun CourseCard(
                 verticalAlignment = Alignment.Top
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = course.name,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontSize = 15.sp
-                        ),
-                        modifier = Modifier.testTag("course_title_${course.id}")
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = course.name,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontSize = 15.sp
+                            ),
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .testTag("course_title_${course.id}")
+                        )
+                        if (course.category.isNotEmpty()) {
+                            Surface(
+                                color = customCardColor.copy(alpha = 0.12f),
+                                shape = RoundedCornerShape(4.dp),
+                                border = BorderStroke(0.8.dp, customCardColor.copy(alpha = 0.25f))
+                            ) {
+                                Text(
+                                    text = course.category,
+                                    color = customCardColor,
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
                     
                     // Visual progress indicator at the top right below the name that dynamically fills up
                     Spacer(modifier = Modifier.height(6.dp))
@@ -1056,6 +1124,7 @@ fun CourseCard(
                 ) {
                     Button(
                         onClick = onCalculate,
+                        enabled = !isSelectionModeActive,
                         colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
@@ -1070,6 +1139,7 @@ fun CourseCard(
                     Box {
                         OutlinedButton(
                             onClick = { showCalendarMenu = true },
+                            enabled = !isSelectionModeActive,
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
                             shape = RoundedCornerShape(8.dp),
                             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
@@ -1165,6 +1235,7 @@ fun CourseCard(
                     if (isCourseActive && course.zoomAccount.isNotEmpty()) {
                         IconButton(
                             onClick = onTestAlarm,
+                            enabled = !isSelectionModeActive,
                             colors = IconButtonDefaults.iconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
                                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
@@ -1177,6 +1248,7 @@ fun CourseCard(
                     // Edit
                     IconButton(
                         onClick = onEdit,
+                        enabled = !isSelectionModeActive,
                         colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Icon(
@@ -1190,6 +1262,7 @@ fun CourseCard(
                     // Delete
                     IconButton(
                         onClick = onDelete,
+                        enabled = !isSelectionModeActive,
                         colors = IconButtonDefaults.iconButtonColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                     ) {
                         Icon(
