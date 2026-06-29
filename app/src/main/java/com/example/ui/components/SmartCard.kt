@@ -18,8 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.ui.material3_foundation.Dimens
-import com.example.ui.material3_foundation.Elevation
+import com.example.core.designsystem.theme.Dimens
+import com.example.core.designsystem.theme.Elevation
 
 enum class SmartCardType {
     Elevated, Filled, Outlined

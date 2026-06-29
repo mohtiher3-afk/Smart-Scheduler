@@ -1,11 +1,7 @@
 package com.example.ui.navigation
 
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Calculate
-import androidx.compose.material.icons.rounded.List
-import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.PieChart
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -19,9 +15,21 @@ import com.example.ui.components.SmartBottomBar
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Schedule : Screen("schedule")
+    object Tasks : Screen("tasks")
+    object Alerts : Screen("alerts")
+    object More : Screen("more")
+    object Courses : Screen("courses")
+    object Calendar : Screen("calendar")
+    object Analytics : Screen("analytics")
+    object Notes : Screen("notes")
+    object Files : Screen("files")
+    object Exams : Screen("exams")
+    object Settings : Screen("settings")
+    object Profile : Screen("profile")
     object SmartScheduler : Screen("smart_scheduler")
     object Calculator : Screen("calculator")
-    object Alerts : Screen("alerts")
+    object StudyHub : Screen("study_hub")
+    object SyncCenter : Screen("sync_center")
 }
 
 @Composable
@@ -39,52 +47,52 @@ fun BottomNavigation(
         listOf(
             Screen.Dashboard,
             Screen.Schedule,
-            Screen.SmartScheduler,
-            Screen.Calculator,
-            Screen.Alerts
+            Screen.Tasks,
+            Screen.Alerts,
+            Screen.More
         )
     }
 
     val activeTab = when (currentRoute) {
         Screen.Dashboard.route -> 0
         Screen.Schedule.route -> 1
-        Screen.SmartScheduler.route -> 2
-        Screen.Calculator.route -> 3
-        Screen.Alerts.route -> 4
+        Screen.Tasks.route -> 2
+        Screen.Alerts.route -> 3
+        Screen.More.route -> 4
         else -> 0
     }
 
-    val tabs = remember(loc) {
+    val tabs = remember(loc, lang) {
         listOf(
             NavigationTabItem(
                 index = 0,
-                label = loc.tabDashboard,
-                icon = Icons.Rounded.PieChart,
+                label = if (lang == "ar") "الرئيسية" else "Home",
+                icon = Icons.Rounded.Home,
                 testTag = "tab_dashboard"
             ),
             NavigationTabItem(
                 index = 1,
-                label = loc.tabSchedule,
-                icon = Icons.Rounded.List,
+                label = if (lang == "ar") "الجدول" else "Schedule",
+                icon = Icons.Rounded.CalendarMonth,
                 testTag = "tab_schedule"
             ),
             NavigationTabItem(
                 index = 2,
-                label = loc.tabSmartScheduler,
-                icon = Icons.Rounded.AutoAwesome,
-                testTag = "tab_smart_scheduler"
+                label = if (lang == "ar") "المهام" else "Tasks",
+                icon = Icons.Rounded.AddTask,
+                testTag = "tab_tasks"
             ),
             NavigationTabItem(
                 index = 3,
-                label = loc.tabCalculator,
-                icon = Icons.Rounded.Calculate,
-                testTag = "tab_calculator"
+                label = if (lang == "ar") "التذكيرات" else "Alerts",
+                icon = Icons.Rounded.Notifications,
+                testTag = "tab_alerts"
             ),
             NavigationTabItem(
                 index = 4,
-                label = loc.tabAlerts,
-                icon = Icons.Rounded.Notifications,
-                testTag = "tab_alerts"
+                label = if (lang == "ar") "المزيد" else "More",
+                icon = Icons.Rounded.GridView,
+                testTag = "tab_more"
             )
         )
     }

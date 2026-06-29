@@ -19,8 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.AppTheme
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Motion
 
 @Composable
 fun SmartCircularProgress(
@@ -28,8 +28,8 @@ fun SmartCircularProgress(
     modifier: Modifier = Modifier,
     size: Dp = 100.dp,
     strokeWidth: Dp = 10.dp,
-    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    progressColor: Color = MaterialTheme.colorScheme.primary,
+    trackColor: Color = AppTheme.colors.surfaceVariant,
+    progressColor: Color = AppTheme.colors.primary,
     showLabel: Boolean = true,
     testTag: String? = null
 ) {
@@ -71,7 +71,7 @@ fun SmartCircularProgress(
                 text = "$percent%",
                 style = AppTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppTheme.colors.onSurface
                 )
             )
         }
@@ -83,8 +83,8 @@ fun SmartLinearProgress(
     progress: Float, // 0.0f to 1.0f
     modifier: Modifier = Modifier,
     height: Dp = 12.dp,
-    trackColor: Color = MaterialTheme.colorScheme.surfaceVariant,
-    progressColor: Color = MaterialTheme.colorScheme.primary,
+    trackColor: Color = AppTheme.colors.surfaceVariant,
+    progressColor: Color = AppTheme.colors.primary,
     showLabel: Boolean = false,
     testTag: String? = null
 ) {
@@ -110,12 +110,12 @@ fun SmartLinearProgress(
                 Text(
                     text = "Progress",
                     style = AppTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 )
                 Text(
                     text = "$percent%",
                     style = AppTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
+                    color = AppTheme.colors.primary
                 )
             }
         }

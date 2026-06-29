@@ -1,6 +1,5 @@
 package com.example.ui.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,11 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,10 +21,10 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
-import com.example.ui.material3_foundation.Dimens
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Dimens
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,52 +47,52 @@ fun SmartDialog(
         properties = properties
     ) {
         Surface(
-            shape = RoundedCornerShape(Dimens.RadiusExtraLarge),
-            color = MaterialTheme.colorScheme.surface,
+            shape = AppTheme.shapes.extraLarge,
+            color = AppTheme.colors.surface,
             tonalElevation = Dimens.SpaceMedium,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.padding(AppTheme.spacing.Large),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 if (icon != null) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = AppTheme.colors.primary,
                         modifier = Modifier
                             .size(Dimens.IconExtraLarge)
-                            .padding(bottom = 16.dp)
+                            .padding(bottom = AppTheme.spacing.Medium)
                     )
                 }
 
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = AppTheme.typography.titleLarge,
+                    color = AppTheme.colors.onSurface,
                     textAlign = TextAlign.Center,
                     fontWeight = FontWeight.Black
                 )
 
                 if (message != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.Small))
                     Text(
                         text = message,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = AppTheme.typography.bodyMedium,
+                        color = AppTheme.colors.onSurfaceVariant,
                         textAlign = TextAlign.Center,
                         lineHeight = 20.sp
                     )
                 }
 
                 if (content != null) {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.Medium))
                     content()
                 }
 
                 if (confirmButton != null || dismissButton != null) {
-                    Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.Large))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End,
@@ -103,7 +100,7 @@ fun SmartDialog(
                     ) {
                         if (dismissButton != null) {
                             dismissButton()
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(AppTheme.spacing.Small))
                         }
                         if (confirmButton != null) {
                             confirmButton()

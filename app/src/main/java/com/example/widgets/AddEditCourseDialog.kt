@@ -46,6 +46,9 @@ fun AddEditCourseDialog(
     var category by remember { mutableStateOf(course?.category ?: "عام") }
 
     var showConflictConfirmDialog by remember { mutableStateOf(false) }
+    var showStartTimePicker by remember { mutableStateOf(false) }
+    var showEndTimePicker by remember { mutableStateOf(false) }
+    val currentLang = com.example.screens.LocalAppLanguage.current
 
     // Represent days of week
     val initialDays = remember {
@@ -369,46 +372,80 @@ fun AddEditCourseDialog(
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        "البدء (م / ص)",
+                                        if (currentLang == "ar") "البدء (م / ص)" else "Start (AM / PM)",
                                         fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    OutlinedTextField(
-                                        value = startTime,
-                                        onValueChange = { startTime = it },
-                                        placeholder = { Text("06:15 م") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = primaryColor,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                                        ),
-                                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showStartTimePicker = true }
+                                    ) {
+                                        OutlinedTextField(
+                                            value = startTime,
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            enabled = false,
+                                            placeholder = { Text("06:15 م") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            ),
+                                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            trailingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.AccessTime,
+                                                    contentDescription = null,
+                                                    tint = primaryColor,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        "الانتهاء",
+                                        if (currentLang == "ar") "الانتهاء" else "End",
                                         fontSize = 10.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
-                                    OutlinedTextField(
-                                        value = endTime,
-                                        onValueChange = { endTime = it },
-                                        placeholder = { Text("10:00 م") },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        shape = RoundedCornerShape(10.dp),
-                                        colors = OutlinedTextFieldDefaults.colors(
-                                            focusedBorderColor = primaryColor,
-                                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                                        ),
-                                        textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { showEndTimePicker = true }
+                                    ) {
+                                        OutlinedTextField(
+                                            value = endTime,
+                                            onValueChange = {},
+                                            readOnly = true,
+                                            enabled = false,
+                                            placeholder = { Text("10:00 م") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                                                disabledBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                                                disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                            ),
+                                            textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            trailingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.AccessTime,
+                                                    contentDescription = null,
+                                                    tint = primaryColor,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -853,6 +890,115 @@ fun AddEditCourseDialog(
             shape = RoundedCornerShape(20.dp)
         )
     }
+
+    if (showStartTimePicker) {
+        M3TimePickerDialog(
+            title = if (currentLang == "ar") "اختر وقت البدء" else "Select Start Time",
+            initialTimeStr = startTime,
+            currentLang = currentLang,
+            onDismiss = { showStartTimePicker = false },
+            onConfirm = {
+                startTime = it
+                showStartTimePicker = false
+            }
+        )
+    }
+
+    if (showEndTimePicker) {
+        M3TimePickerDialog(
+            title = if (currentLang == "ar") "اختر وقت الانتهاء" else "Select End Time",
+            initialTimeStr = endTime,
+            currentLang = currentLang,
+            onDismiss = { showEndTimePicker = false },
+            onConfirm = {
+                endTime = it
+                showEndTimePicker = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun M3TimePickerDialog(
+    title: String,
+    initialTimeStr: String,
+    currentLang: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    val (initialHour, initialMinute) = remember(initialTimeStr) {
+        parseTimeString(initialTimeStr)
+    }
+    val state = rememberTimePickerState(
+        initialHour = initialHour,
+        initialMinute = initialMinute,
+        is24Hour = false
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val formatted = formatTime(state.hour, state.minute)
+                    onConfirm(formatted)
+                }
+            ) {
+                Text(if (currentLang == "ar") "تأكيد" else "Confirm", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (currentLang == "ar") "إلغاء" else "Cancel")
+            }
+        },
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                TimePicker(state = state)
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    )
+}
+
+private fun parseTimeString(timeStr: String): Pair<Int, Int> {
+    try {
+        val clean = timeStr.trim()
+        val isPm = clean.contains("م") || clean.lowercase().contains("pm")
+        val numbers = clean.replace(Regex("[^0-9:]"), "")
+        val parts = numbers.split(":")
+        var hours = parts[0].toIntOrNull() ?: 12
+        val minutes = parts[1].toIntOrNull() ?: 0
+        if (isPm && hours < 12) {
+            hours += 12
+        } else if (!isPm && hours == 12) {
+            hours = 0
+        }
+        return Pair(hours, minutes)
+    } catch (e: Exception) {
+        return Pair(12, 0)
+    }
+}
+
+private fun formatTime(hour: Int, minute: Int): String {
+    val amPm = if (hour >= 12) "م" else "ص"
+    val adjustedHour = when {
+        hour == 0 -> 12
+        hour > 12 -> hour - 12
+        else -> hour
+    }
+    return String.format(java.util.Locale.US, "%02d:%02d %s", adjustedHour, minute, amPm)
 }
 
 private fun parseArabicDaysStringToIndices(daysStr: String): List<Int> {

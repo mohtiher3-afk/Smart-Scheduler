@@ -6,9 +6,18 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,9 +28,10 @@ import com.example.models.Course
 import com.example.screens.MainViewModel
 import com.example.screens.LocalAppLanguage
 import com.example.screens.tabs.*
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.Motion
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 @Composable
 fun SmartSchedulerNavGraph(
@@ -34,6 +44,9 @@ fun SmartSchedulerNavGraph(
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
     val currentLang = LocalAppLanguage.current
+
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
 
     val courses = viewModel.allCourses.collectAsStateWithLifecycle().value
     val reminders = viewModel.allReminders.collectAsStateWithLifecycle().value
@@ -63,31 +76,7 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeOut()
             }
         ) {
-            com.example.ui.features.home.DashboardScreen(
-                mainViewModel = viewModel,
-                onAddCourseClick = onAddCourseClick,
-                onNavigateToSchedule = {
-                    navController.navigate(Screen.Schedule.route) {
-                        popUpTo(Screen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onNavigateToCalculator = {
-                    navController.navigate(Screen.Calculator.route) {
-                        popUpTo(Screen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onNavigateToReminders = {
-                    navController.navigate(Screen.Alerts.route) {
-                        popUpTo(Screen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
+            com.example.feature.dashboard.presentation.DashboardScreenRoot()
         }
 
         composable(
@@ -99,44 +88,7 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            ScheduleTab(
-                courses = courses,
-                upcomingLecturesAlerts = upcomingLecturesAlerts,
-                onCalculate = { course ->
-                    viewModel.selectCourseForCalculator(course.id.toLong())
-                    viewModel.recalculateSessions()
-                    navController.navigate(Screen.Calculator.route) {
-                        popUpTo(Screen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                onEdit = onEditCourseClick,
-                onDelete = { course ->
-                    viewModel.deleteCourse(course)
-                    val deleteMsg = if (currentLang == "ar") "تم حذف الدورة بنجاح" else "Course deleted successfully"
-                    Toast.makeText(context, deleteMsg, Toast.LENGTH_SHORT).show()
-                },
-                onTestAlarm = { course ->
-                    viewModel.triggerInstantTestAlarm(context, course.name, course.zoomAccount)
-                },
-                onTestUpcomingAlarm = { courseName, zoom ->
-                    viewModel.triggerInstantTestAlarm(context, courseName, zoom)
-                },
-                clipboardManager = clipboardManager,
-                context = context,
-                onCourseUpdated = { updatedCourse ->
-                    viewModel.updateCourse(updatedCourse)
-                },
-                onExportCSV = {
-                    viewModel.exportAllDataToCSV(context)
-                },
-                onRefresh = {
-                    viewModel.scheduleAlarmsForNextLectures(context)
-                    viewModel.checkAndSchedule15MinPreMeetingAlerts(context)
-                },
-                onAddCourseClick = onAddCourseClick
-            )
+            com.example.feature.schedule.presentation.ScheduleScreenRoot()
         }
 
         composable(
@@ -148,16 +100,7 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            SmartSchedulerTab(
-                viewModel = viewModel,
-                onCourseAddedAndNavigationRequested = {
-                    navController.navigate(Screen.Schedule.route) {
-                        popUpTo(Screen.Dashboard.route) { saveState = true }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                }
-            )
+            com.example.feature.smartscheduler.presentation.SmartSchedulerScreenRoot()
         }
 
         composable(
@@ -169,43 +112,7 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            CalculatorTab(
-                courses = courses,
-                selectedCourseId = selectedCourseId,
-                startDate = startDate,
-                endDate = endDate,
-                calculatedSessions = calculatedSessions,
-                reminders = reminders,
-                onCourseSelected = { viewModel.selectCourseForCalculator(it) },
-                onStartDateClick = {
-                    showDatePicker(context, startDate) { viewModel.setStartDate(it) }
-                },
-                onEndDateClick = {
-                    showDatePicker(context, endDate) { viewModel.setEndDate(it) }
-                },
-                onToggleReminder = { session ->
-                    val selectedCourse = courses.find { it.id.toLong() == selectedCourseId }
-                    if (selectedCourse != null) {
-                        viewModel.toggleReminderForSession(
-                            context,
-                            selectedCourse,
-                            session.dateString,
-                            session.formattedDate
-                        )
-                    }
-                },
-                context = context,
-                onToggleSessionCompleted = { sessionIndex ->
-                    val selectedCourse = courses.find { it.id.toLong() == selectedCourseId }
-                    if (selectedCourse != null) {
-                        viewModel.updateCourse(selectedCourse.toggleLectureCompleted(sessionIndex))
-                    }
-                },
-                onCourseUpdated = { updatedCourse ->
-                    viewModel.updateCourse(updatedCourse)
-                },
-                viewModel = viewModel
-            )
+            com.example.feature.calculator.presentation.CalculatorScreenRoot()
         }
 
         composable(
@@ -217,51 +124,165 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            RemindersTab(
-                reminders = reminders,
-                onDeleteReminder = { reminder ->
-                    viewModel.deleteReminder(reminder)
-                    val cancelMsg = if (currentLang == "ar") "تم إلغاء التنبيه" else "Alert canceled"
-                    Toast.makeText(context, cancelMsg, Toast.LENGTH_SHORT).show()
-                },
-                onClearAllReminders = {
-                    viewModel.clearAllReminders(context)
-                    val clearMsg = if (currentLang == "ar") "تم إلغاء كافة التنبيهات المجدولة" else "All scheduled alerts canceled"
-                    Toast.makeText(context, clearMsg, Toast.LENGTH_SHORT).show()
-                },
-                selectedSound = selectedSound,
-                onSoundChange = { viewModel.setAlertSound(it) },
-                onPlaySoundPreview = { sound -> viewModel.playAlertSoundPreview(context, sound) },
-                onStopSoundPreview = { viewModel.stopAlertSoundPreview() },
-                onTestInstantAlert = { courseName, zoom ->
-                    viewModel.triggerInstantTestAlarm(context, courseName, zoom)
-                    val testMsg = if (currentLang == "ar") "سيصلك تنبيه تجريبي خلال 5 ثوانٍ ⏰" else "A test alert will arrive in 5 seconds ⏰"
-                    Toast.makeText(context, testMsg, Toast.LENGTH_SHORT).show()
-                },
-                context = context
-            )
+            com.example.feature.alerts.presentation.AlertsScreenRoot()
         }
+
+        composable(
+            route = Screen.Tasks.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.tasks.presentation.TasksScreenRoot()
+        }
+
+        composable(
+            route = Screen.More.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.more.presentation.MoreScreenRoot()
+        }
+
+        composable(
+            route = Screen.Courses.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.courses.presentation.CoursesScreenRoot()
+        }
+
+        composable(
+            route = Screen.SyncCenter.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.synccenter.presentation.SyncCenterScreenRoot()
+        }
+
+        composable(
+            route = Screen.Analytics.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.analytics.presentation.AnalyticsScreenRoot()
+        }
+
+        composable(
+            route = Screen.Calendar.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.calendar.presentation.CalendarScreenRoot()
+        }
+
+        composable(
+            route = Screen.Notes.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.notes.presentation.NotesScreenRoot()
+        }
+
+        composable(
+            route = Screen.Files.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.files.presentation.FilesScreenRoot()
+        }
+
+        composable(
+            route = Screen.Exams.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.exams.presentation.ExamsScreenRoot()
+        }
+
+        composable(
+            route = Screen.Profile.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.profile.presentation.ProfileScreenRoot()
+        }
+
+        composable(
+            route = Screen.StudyHub.route,
+            enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
+            exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
+        ) {
+            com.example.feature.studyhub.presentation.StudyHubScreenRoot()
+        }
+    }
+
+    if (showStartDatePicker) {
+        M3DatePickerDialog(
+            initialDateStr = startDate,
+            currentLang = currentLang,
+            onDismiss = { showStartDatePicker = false },
+            onConfirm = {
+                viewModel.setStartDate(it)
+                showStartDatePicker = false
+            }
+        )
+    }
+
+    if (showEndDatePicker) {
+        M3DatePickerDialog(
+            initialDateStr = endDate,
+            currentLang = currentLang,
+            onDismiss = { showEndDatePicker = false },
+            onConfirm = {
+                viewModel.setEndDate(it)
+                showEndDatePicker = false
+            }
+        )
     }
 }
 
-private fun showDatePicker(
-    context: Context,
-    currentDateStr: String,
-    onDateSelected: (String) -> Unit
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun M3DatePickerDialog(
+    initialDateStr: String,
+    currentLang: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
 ) {
-    val date = com.example.services.SchedulerUtils.parseDate(currentDateStr) ?: java.util.Date()
-    val calendar = Calendar.getInstance()
-    calendar.time = date
-
-    val datePickerDialog = android.app.DatePickerDialog(
-        context,
-        { _, year, month, dayOfMonth ->
-            val formattedSelected = String.format(Locale.US, "%04d-%02d-%02d", year, month + 1, dayOfMonth)
-            onDateSelected(formattedSelected)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
+    val initialMillis = remember(initialDateStr) {
+        val date = com.example.services.SchedulerUtils.parseDate(initialDateStr)
+        date?.time
+    }
+    val state = rememberDatePickerState(
+        initialSelectedDateMillis = initialMillis
     )
-    datePickerDialog.show()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    state.selectedDateMillis?.let { millis ->
+                        val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
+                        calendar.timeInMillis = millis
+                        val year = calendar.get(Calendar.YEAR)
+                        val month = calendar.get(Calendar.MONTH) + 1
+                        val day = calendar.get(Calendar.DAY_OF_MONTH)
+                        val formatted = String.format(Locale.US, "%04d-%02d-%02d", year, month, day)
+                        onConfirm(formatted)
+                    }
+                }
+            ) {
+                Text(if (currentLang == "ar") "تأكيد" else "Confirm", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(if (currentLang == "ar") "إلغاء" else "Cancel")
+            }
+        },
+        shape = RoundedCornerShape(28.dp)
+    ) {
+        DatePicker(state = state)
+    }
 }

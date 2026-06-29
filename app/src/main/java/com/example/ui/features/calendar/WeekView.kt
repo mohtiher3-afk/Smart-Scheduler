@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -17,7 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.Course
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 import java.util.*
 
 @Composable
@@ -38,10 +37,10 @@ fun WeekView(
             .fillMaxWidth()
             .testTag("week_view_container")
             .background(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(16.dp)
+                color = AppTheme.colors.surface,
+                shape = AppTheme.shapes.large
             )
-            .padding(16.dp)
+            .padding(AppTheme.spacing.Medium)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -75,34 +74,33 @@ fun WeekView(
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 2.dp)
-                        .clip(RoundedCornerShape(12.dp))
+                        .clip(AppTheme.shapes.medium)
                         .background(
                             color = when {
-                                isSelected -> MaterialTheme.colorScheme.primary
-                                isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f)
+                                isSelected -> AppTheme.colors.primary
+                                isToday -> AppTheme.colors.primaryContainer.copy(alpha = 0.25f)
                                 else -> Color.Transparent
                             }
                         )
                         .clickable { onDateSelected(date) }
-                        .padding(vertical = 10.dp),
+                        .padding(vertical = AppTheme.spacing.Medium),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = dayLabel,
                         style = AppTheme.typography.bodySmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                            color = if (isSelected) AppTheme.colors.onPrimary.copy(alpha = 0.8f) else AppTheme.colors.onSurfaceVariant
                         )
                     )
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.Small))
 
                     Text(
                         text = dayOfMon,
                         style = AppTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Black,
-                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                            fontSize = 16.sp
+                            color = if (isSelected) AppTheme.colors.onPrimary else AppTheme.colors.onSurface
                         )
                     )
 

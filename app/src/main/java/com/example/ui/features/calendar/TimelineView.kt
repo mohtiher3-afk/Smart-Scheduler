@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.ui.components.SmartEmptyState
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 
 @Composable
 fun TimelineView(
@@ -47,7 +47,7 @@ fun TimelineView(
         modifier = modifier
             .fillMaxSize()
             .testTag("timeline_view_container")
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppTheme.colors.background)
     ) {
         if (courses.isEmpty()) {
             Box(
@@ -84,11 +84,11 @@ fun TimelineView(
 
                     Surface(
                         onClick = { selectedCourse = course },
-                        color = if (isSelected) courseColor else MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) courseColor else AppTheme.colors.surface,
+                        shape = AppTheme.shapes.extraLarge,
                         border = androidx.compose.foundation.BorderStroke(
                             width = 1.dp,
-                            color = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                            color = if (isSelected) Color.Transparent else AppTheme.colors.outline.copy(alpha = 0.2f)
                         ),
                         modifier = Modifier.testTag("timeline_chip_${course.id}")
                     ) {
@@ -96,7 +96,7 @@ fun TimelineView(
                             text = course.name,
                             style = AppTheme.typography.labelLarge.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
+                                color = if (isSelected) Color.White else AppTheme.colors.onSurface,
                                 fontSize = 13.sp
                             ),
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -110,7 +110,7 @@ fun TimelineView(
                     course.getCompletedLecturesSet()
                 }
 
-                val defaultColor = MaterialTheme.colorScheme.primary
+                val defaultColor = AppTheme.colors.primary
                 val courseColor = remember(course.colorHex, defaultColor) {
                     try {
                         Color(android.graphics.Color.parseColor(course.colorHex))
@@ -205,8 +205,8 @@ private fun TimelineItemRow(
                     .background(
                         color = when {
                             isCompleted -> courseColor
-                            isNext -> MaterialTheme.colorScheme.background
-                            else -> MaterialTheme.colorScheme.surface
+                            isNext -> AppTheme.colors.background
+                            else -> AppTheme.colors.surface
                         }
                     )
                     .border(
@@ -244,9 +244,9 @@ private fun TimelineItemRow(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = when {
-                    isCompleted -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                    isCompleted -> AppTheme.colors.surfaceVariant.copy(alpha = 0.4f)
                     isNext -> courseColor.copy(alpha = 0.05f)
-                    else -> MaterialTheme.colorScheme.surface
+                    else -> AppTheme.colors.surface
                 }
             ),
             elevation = CardDefaults.cardElevation(defaultElevation = if (isNext) 2.dp else 1.dp)
@@ -261,13 +261,13 @@ private fun TimelineItemRow(
                         text = if (currentLanguage == "ar") "المحاضرة #$lectureNum" else "Lecture #$lectureNum",
                         style = AppTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = if (isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
+                            color = if (isCompleted) AppTheme.colors.onSurface.copy(alpha = 0.6f) else AppTheme.colors.onSurface
                         )
                     )
 
                     // Complete/Incomplete status badge
                     Surface(
-                        color = if (isCompleted) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent,
+                        color = if (isCompleted) AppTheme.colors.primary.copy(alpha = 0.12f) else Color.Transparent,
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Text(
@@ -278,7 +278,7 @@ private fun TimelineItemRow(
                             },
                             style = AppTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (isCompleted) MaterialTheme.colorScheme.primary else Color.Gray,
+                                color = if (isCompleted) AppTheme.colors.primary else Color.Gray,
                                 fontSize = 11.sp
                             ),
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -291,7 +291,7 @@ private fun TimelineItemRow(
                     Text(
                         text = "$meetingDate • $meetingTime",
                         style = AppTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            color = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.7f),
                             fontWeight = FontWeight.Medium
                         )
                     )
@@ -347,7 +347,7 @@ private fun TimelineItemRow(
                                 noteText
                             },
                             style = AppTheme.typography.bodyMedium.copy(
-                                color = if (noteText.isBlank()) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                                color = if (noteText.isBlank()) AppTheme.colors.onSurfaceVariant.copy(alpha = 0.5f) else AppTheme.colors.onSurface,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Normal
                             ),
@@ -357,7 +357,7 @@ private fun TimelineItemRow(
                         Icon(
                             imageVector = Icons.Rounded.EditNote,
                             contentDescription = "Edit Note",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            tint = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.5f),
                             modifier = Modifier.size(18.dp)
                         )
                     }

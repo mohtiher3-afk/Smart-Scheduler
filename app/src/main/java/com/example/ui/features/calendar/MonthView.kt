@@ -6,7 +6,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -20,7 +19,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.Course
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 import java.util.*
 
 @Composable
@@ -49,10 +48,10 @@ fun MonthView(
             .fillMaxWidth()
             .testTag("month_view_container")
             .background(
-                color = MaterialTheme.colorScheme.surface,
-                shape = RoundedCornerShape(16.dp)
+                color = AppTheme.colors.surface,
+                shape = AppTheme.shapes.medium
             )
-            .padding(16.dp)
+            .padding(AppTheme.spacing.Medium)
     ) {
         // Days of week header
         Row(
@@ -64,7 +63,7 @@ fun MonthView(
                     text = day,
                     style = AppTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        color = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.7f),
                         fontSize = 14.sp
                     ),
                     modifier = Modifier.weight(1f),
@@ -73,7 +72,7 @@ fun MonthView(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.Small))
 
         // Calendar Days Grid
         val chunkedDays = daysInMonth.chunked(7)
@@ -139,11 +138,11 @@ private fun DayItem(
         modifier = modifier
             .aspectRatio(1f)
             .padding(2.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(AppTheme.shapes.medium)
             .background(
                 color = when {
-                    isSelected -> MaterialTheme.colorScheme.primary
-                    isToday -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    isSelected -> AppTheme.colors.primary
+                    isToday -> AppTheme.colors.primaryContainer.copy(alpha = 0.3f)
                     else -> Color.Transparent
                 }
             )
@@ -151,8 +150,8 @@ private fun DayItem(
                 if (isToday && !isSelected) {
                     it.border(
                         width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        shape = RoundedCornerShape(12.dp)
+                        color = AppTheme.colors.primary.copy(alpha = 0.5f),
+                        shape = AppTheme.shapes.medium
                     )
                 } else it
             }
@@ -166,10 +165,10 @@ private fun DayItem(
             style = AppTheme.typography.bodyLarge.copy(
                 fontWeight = if (isSelected || isToday) FontWeight.Bold else FontWeight.Medium,
                 color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isToday -> MaterialTheme.colorScheme.primary
-                    isCurrentMonth -> MaterialTheme.colorScheme.onSurface
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                    isSelected -> AppTheme.colors.onPrimary
+                    isToday -> AppTheme.colors.primary
+                    isCurrentMonth -> AppTheme.colors.onSurface
+                    else -> AppTheme.colors.onSurfaceVariant.copy(alpha = 0.38f)
                 },
                 fontSize = 15.sp
             )

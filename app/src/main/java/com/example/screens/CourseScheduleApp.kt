@@ -10,10 +10,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.SolidColor
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -55,10 +57,13 @@ import com.example.services.SchedulerUtils
 import java.text.SimpleDateFormat
 import java.util.*
 
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CourseScheduleApp(
     viewModel: MainViewModel,
+    windowSizeClass: WindowSizeClass,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -92,6 +97,10 @@ fun CourseScheduleApp(
     val userAuthenticated by viewModel.userAuthenticated.collectAsStateWithLifecycle()
     val registeredPin by viewModel.registeredPin.collectAsStateWithLifecycle()
 
+    LaunchedEffect(Unit) {
+        com.example.sync.SyncManager.schedulePeriodicSync(context)
+    }
+
     LaunchedEffect(showSplash) {
         if (showSplash) {
             kotlinx.coroutines.delay(2200)
@@ -112,6 +121,7 @@ fun CourseScheduleApp(
     } else {
         com.example.ui.features.home.HomeScreen(
             viewModel = viewModel,
+            windowSizeClass = windowSizeClass,
             modifier = modifier
         )
     }
@@ -130,7 +140,8 @@ fun SettingsDialog(
     onPlaySoundPreview: (String) -> Unit,
     onStopSoundPreview: () -> Unit,
     onDismiss: () -> Unit,
-    viewModel: MainViewModel
+    viewModel: MainViewModel,
+    onNavigateToSyncCenter: () -> Unit
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -269,38 +280,55 @@ fun SettingsDialog(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 listOf(
-                                    "system" to loc.systemTheme,
-                                    "light" to loc.lightTheme,
-                                    "dark" to loc.darkTheme
-                                ).forEach { (mode, name) ->
+                                    Triple("system", loc.systemTheme, androidx.compose.ui.graphics.Brush.sweepGradient(listOf(Color.White, Color(0xFF1E3A8A)))),
+                                    Triple("light", loc.lightTheme, SolidColor(Color(0xFF1E3A8A))),
+                                    Triple("dark", loc.darkTheme, SolidColor(Color(0xFF93C5FD))),
+                                    Triple("amoled", if (currentLang == "ar") "أموليد" else "AMOLED Black", SolidColor(Color.Black)),
+                                    Triple("purple", if (currentLang == "ar") "بنفسجي" else "Purple", SolidColor(Color(0xFF8B5CF6))),
+                                    Triple("blue", if (currentLang == "ar") "أزرق" else "Blue", SolidColor(Color(0xFF2563EB))),
+                                    Triple("green", if (currentLang == "ar") "أخضر" else "Green", SolidColor(Color(0xFF10B981))),
+                                    Triple("orange", if (currentLang == "ar") "برتقالي" else "Orange", SolidColor(Color(0xFFF97316)))
+                                ).forEach { (mode, name, brush) ->
                                     val isSelected = themeMode == mode
                                     Box(
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .clip(RoundedCornerShape(10.dp))
+                                            .clip(RoundedCornerShape(12.dp))
                                             .background(
-                                                if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surface
+                                                if (isSelected) MaterialTheme.colorScheme.secondary.copy(alpha = 0.25f) else MaterialTheme.colorScheme.surface
                                             )
                                             .border(
-                                                width = 1.dp,
+                                                width = if (isSelected) 2.dp else 1.dp,
                                                 color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant,
-                                                shape = RoundedCornerShape(10.dp)
+                                                shape = RoundedCornerShape(12.dp)
                                             )
                                             .clickable { onThemeChange(mode) }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
+                                            .padding(horizontal = 12.dp, vertical = 8.dp)
                                     ) {
-                                        Text(
-                                            text = name,
-                                            fontSize = 11.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .clip(CircleShape)
+                                                    .background(brush)
+                                                    .border(0.5.dp, Color.LightGray, CircleShape)
+                                            )
+                                            Text(
+                                                text = name,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = if (isSelected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 1
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -724,23 +752,18 @@ fun SettingsDialog(
                         }
 
                         Button(
-                            onClick = {
-                                scope.launch {
-                                    com.example.services.CloudSyncManager.performCloudSync(context, courses)
-                                }
-                            },
+                            onClick = onNavigateToSyncCenter,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
-                            enabled = syncState !is com.example.services.CloudSyncManager.SyncState.Syncing,
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Icon(Icons.Rounded.CloudUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                                Icon(Icons.Rounded.CloudSync, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Text(
-                                    text = if (currentLang == "ar") "بدء النسخ الاحتياطي الفوري" else "Start Quick Backup",
+                                    text = if (currentLang == "ar") "فتح مركز المزامنة المطور" else "Open Advanced Sync Center",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold
                                 )

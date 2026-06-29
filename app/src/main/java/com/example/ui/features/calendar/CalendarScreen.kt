@@ -29,7 +29,8 @@ import com.example.models.Course
 import com.example.screens.LocalAppLanguage
 import com.example.screens.MainViewModel
 import com.example.ui.components.SmartEmptyState
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Dimens
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -60,7 +61,7 @@ fun CalendarScreen(
         modifier = modifier
             .fillMaxSize()
             .testTag("calendar_screen_container")
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppTheme.colors.background)
     ) {
         // Upper Segmented Switcher for Calendar Views
         ViewSwitcherRow(
@@ -69,7 +70,7 @@ fun CalendarScreen(
             currentLanguage = currentLang
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.Small))
 
         // Navigation Header (Chevrons & Text representation)
         CalendarNavigationHeader(
@@ -99,7 +100,7 @@ fun CalendarScreen(
             }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(AppTheme.spacing.Medium))
 
         // Active View Content
         Box(
@@ -116,10 +117,10 @@ fun CalendarScreen(
                             courses = courses,
                             onDateSelected = { selectedDate = it },
                             currentLanguage = currentLang,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = AppTheme.spacing.Medium)
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.Medium))
 
                         // Selected day details
                         SelectedDayLessonsList(
@@ -137,10 +138,10 @@ fun CalendarScreen(
                             courses = courses,
                             onDateSelected = { selectedDate = it },
                             currentLanguage = currentLang,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            modifier = Modifier.padding(horizontal = AppTheme.spacing.Medium)
                         )
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.Medium))
 
                         SelectedDayLessonsList(
                             selectedDate = selectedDate,
@@ -204,15 +205,15 @@ private fun ViewSwitcherRow(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        shape = RoundedCornerShape(24.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        tonalElevation = 1.dp
+            .padding(horizontal = AppTheme.spacing.Medium, vertical = AppTheme.spacing.Small),
+        shape = AppTheme.shapes.extraLarge,
+        color = AppTheme.colors.surfaceVariant.copy(alpha = 0.4f),
+        tonalElevation = Dimens.SpaceSmall
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(4.dp),
+                .padding(AppTheme.spacing.ExtraSmall),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             items.forEach { (viewType, label, icon) ->
@@ -220,12 +221,12 @@ private fun ViewSwitcherRow(
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(AppTheme.shapes.large)
                         .background(
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+                            color = if (isSelected) AppTheme.colors.primary else Color.Transparent
                         )
                         .clickable { onViewChange(viewType) }
-                        .padding(vertical = 8.dp, horizontal = 4.dp),
+                        .padding(vertical = AppTheme.spacing.Small, horizontal = AppTheme.spacing.ExtraSmall),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -235,16 +236,15 @@ private fun ViewSwitcherRow(
                         Icon(
                             imageVector = icon,
                             contentDescription = label,
-                            tint = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
+                            tint = if (isSelected) Color.White else AppTheme.colors.onSurfaceVariant,
+                            modifier = Modifier.size(Dimens.IconSmall)
                         )
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(AppTheme.spacing.ExtraSmall))
                         Text(
                             text = label,
                             style = AppTheme.typography.labelSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontSize = 11.sp
+                                color = if (isSelected) Color.White else AppTheme.colors.onSurfaceVariant
                             ),
                             textAlign = TextAlign.Center
                         )
@@ -303,10 +303,10 @@ private fun CalendarNavigationHeader(
         IconButton(
             onClick = onNavigatePrevious,
             modifier = Modifier
-                .size(40.dp)
+                .size(Dimens.IconExtraLarge)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
-            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                .background(AppTheme.colors.surface),
+            colors = IconButtonDefaults.iconButtonColors(contentColor = AppTheme.colors.primary)
         ) {
             Icon(
                 imageVector = if (currentLanguage == "ar") Icons.Rounded.ChevronRight else Icons.Rounded.ChevronLeft,
@@ -318,8 +318,7 @@ private fun CalendarNavigationHeader(
             text = headerText,
             style = AppTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 16.sp
+                color = AppTheme.colors.onSurface
             ),
             textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f)
@@ -329,10 +328,10 @@ private fun CalendarNavigationHeader(
         IconButton(
             onClick = onNavigateNext,
             modifier = Modifier
-                .size(40.dp)
+                .size(Dimens.IconExtraLarge)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surface),
-            colors = IconButtonDefaults.iconButtonColors(contentColor = MaterialTheme.colorScheme.primary)
+                .background(AppTheme.colors.surface),
+            colors = IconButtonDefaults.iconButtonColors(contentColor = AppTheme.colors.primary)
         ) {
             Icon(
                 imageVector = if (currentLanguage == "ar") Icons.Rounded.ChevronLeft else Icons.Rounded.ChevronRight,
@@ -365,7 +364,7 @@ private fun SelectedDayLessonsList(
             text = if (currentLanguage == "ar") "محاضرات اليوم" else "Lectures on this day",
             style = AppTheme.typography.titleSmall.copy(
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = AppTheme.colors.onSurfaceVariant
             ),
             modifier = Modifier.padding(bottom = 8.dp)
         )
@@ -380,7 +379,7 @@ private fun SelectedDayLessonsList(
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(AppTheme.spacing.Small)
             ) {
                 items(activeLessons) { course ->
                     SelectedLessonItem(
@@ -398,7 +397,7 @@ private fun SelectedLessonItem(
     course: Course,
     currentLanguage: String
 ) {
-    val defaultColor = MaterialTheme.colorScheme.primary
+    val defaultColor = AppTheme.colors.primary
     val courseColor = remember(course.colorHex, defaultColor) {
         try {
             Color(android.graphics.Color.parseColor(course.colorHex))
@@ -411,9 +410,9 @@ private fun SelectedLessonItem(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("day_lesson_${course.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = AppTheme.shapes.medium,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppTheme.colors.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -450,14 +449,14 @@ private fun SelectedLessonItem(
                         text = course.name,
                         style = AppTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = AppTheme.colors.onSurface
                         )
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(AppTheme.spacing.ExtraSmall))
                     Text(
                         text = "${course.timeStart} - ${course.timeEnd}",
                         style = AppTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                     )

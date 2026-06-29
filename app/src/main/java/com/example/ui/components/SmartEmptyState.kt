@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Inbox
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,8 +22,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.AppTheme
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Motion
 
 @Composable
 fun SmartEmptyState(
@@ -69,7 +68,7 @@ fun SmartEmptyState(
                     .scale(iconScale)
                     .size(96.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+                        color = AppTheme.colors.primaryContainer.copy(alpha = 0.4f),
                         shape = CircleShape
                     )
             ) {
@@ -78,14 +77,14 @@ fun SmartEmptyState(
                     modifier = Modifier
                         .size(64.dp)
                         .background(
-                            color = MaterialTheme.colorScheme.primaryContainer,
+                            color = AppTheme.colors.primaryContainer,
                             shape = CircleShape
                         )
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = "Empty state icon",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        tint = AppTheme.colors.onPrimaryContainer,
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -98,7 +97,7 @@ fun SmartEmptyState(
                 text = title,
                 style = AppTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = AppTheme.colors.onSurface
                 ),
                 textAlign = TextAlign.Center
             )
@@ -109,7 +108,7 @@ fun SmartEmptyState(
                 text = description,
                 style = AppTheme.typography.bodyMedium.copy(
                     lineHeight = 20.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = AppTheme.colors.onSurfaceVariant
                 ),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp)

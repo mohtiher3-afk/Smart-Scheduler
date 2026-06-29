@@ -24,9 +24,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.Dimens
-import com.example.ui.material3_foundation.Elevation
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.Dimens
+import com.example.core.designsystem.theme.Elevation
+import com.example.core.designsystem.theme.Motion
 
 @Composable
 fun SmartFAB(

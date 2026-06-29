@@ -5,26 +5,71 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import com.example.models.Course
 import com.example.models.ReminderEntity
+import com.example.models.StudySession
+import com.example.models.StudyGoal
+import com.example.models.Grade
+
+import com.example.sync.SyncManager
 
 class CourseRepository(private val courseDao: CourseDao) {
     val allCourses: Flow<List<Course>> = courseDao.getAllCourses()
 
     suspend fun getCourseById(id: Int): Course? = courseDao.getCourseById(id)
 
-    suspend fun insertCourse(course: Course): Long = courseDao.insertCourse(course)
+    suspend fun insertCourse(context: Context, course: Course): Long {
+        val id = courseDao.insertCourse(course.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+        return id
+    }
 
-    suspend fun updateCourse(course: Course) = courseDao.updateCourse(course)
+    suspend fun updateCourse(context: Context, course: Course) {
+        courseDao.updateCourse(course.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+    }
 
-    suspend fun deleteCourse(course: Course) {
-        courseDao.deleteRemindersByCourse(course.id.toLong())
-        courseDao.deleteCourse(course)
+    suspend fun deleteCourse(context: Context, course: Course) {
+        courseDao.softDeleteRemindersByCourse(course.id.toLong())
+        courseDao.softDeleteCourse(course.id)
+        SyncManager.scheduleSync(context)
     }
 
     val allReminders: Flow<List<ReminderEntity>> = courseDao.getAllReminders()
 
-    suspend fun insertReminder(reminder: ReminderEntity): Long = courseDao.insertReminder(reminder)
+    suspend fun insertReminder(context: Context, reminder: ReminderEntity): Long {
+        val id = courseDao.insertReminder(reminder.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+        return id
+    }
 
-    suspend fun deleteReminder(reminder: ReminderEntity) = courseDao.deleteReminder(reminder)
+    suspend fun deleteReminder(context: Context, reminder: ReminderEntity) {
+        courseDao.softDeleteReminder(reminder.id)
+        SyncManager.scheduleSync(context)
+    }
+
+    // Analytics Methods
+    val allStudySessions: Flow<List<StudySession>> = courseDao.getAllStudySessions()
+    val allGoals: Flow<List<StudyGoal>> = courseDao.getAllGoals()
+    val allGrades: Flow<List<Grade>> = courseDao.getAllGrades()
+
+    suspend fun insertStudySession(context: Context, session: StudySession) {
+        courseDao.insertStudySession(session.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+    }
+
+    suspend fun insertGoal(context: Context, goal: StudyGoal) {
+        courseDao.insertGoal(goal.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+    }
+
+    suspend fun updateGoal(context: Context, goal: StudyGoal) {
+        courseDao.updateGoal(goal.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+    }
+
+    suspend fun insertGrade(context: Context, grade: Grade) {
+        courseDao.insertGrade(grade.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
+        SyncManager.scheduleSync(context)
+    }
 
     suspend fun ensurePrepopulated(context: Context) {
         val currentList = allCourses.first()
@@ -33,14 +78,15 @@ class CourseRepository(private val courseDao: CourseDao) {
             val backedUpCourses = LocalStorageBackup.loadCourses(context)
             if (backedUpCourses.isNotEmpty()) {
                 for (course in backedUpCourses) {
-                    courseDao.insertCourse(course)
+                    courseDao.insertCourse(course.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
                 }
                 
                 // Also restore backed up reminders
                 val backedUpReminders = LocalStorageBackup.loadReminders(context)
                 for (reminder in backedUpReminders) {
-                    courseDao.insertReminder(reminder)
+                    courseDao.insertReminder(reminder.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
                 }
+                SyncManager.scheduleSync(context)
                 return
             }
 
@@ -107,8 +153,9 @@ class CourseRepository(private val courseDao: CourseDao) {
                 )
             )
             for (course in defaultCourses) {
-                courseDao.insertCourse(course)
+                courseDao.insertCourse(course.copy(syncStatus = 1, lastUpdated = System.currentTimeMillis()))
             }
+            SyncManager.scheduleSync(context)
         }
     }
 }

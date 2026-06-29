@@ -59,7 +59,7 @@ import com.example.models.Course
 import com.example.models.SessionInfo
 import com.example.services.SchedulerUtils
 import com.example.screens.LocalAppLanguage
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 import com.example.screens.Loc
 import com.example.widgets.CourseCard
 import java.text.SimpleDateFormat

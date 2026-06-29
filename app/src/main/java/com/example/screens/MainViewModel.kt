@@ -32,6 +32,7 @@ import com.example.services.AlarmReceiver
 import com.example.services.GeminiClient
 import com.example.services.LocalStorageBackup
 import com.example.services.CSVExporter
+import com.example.ai.*
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -39,6 +40,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     val allCourses: StateFlow<List<Course>>
     val allReminders: StateFlow<List<ReminderEntity>>
+    val allStudySessions: StateFlow<List<com.example.models.StudySession>>
+    val allGoals: StateFlow<List<com.example.models.StudyGoal>>
+    val allGrades: StateFlow<List<com.example.models.Grade>>
+
+    // Calculated analytics
+    val totalStudyMinutes: StateFlow<Long>
+    val weeklyStudyStats: StateFlow<Map<Int, Long>> // DayOfWeek -> Minutes
+    val currentGpa: StateFlow<Double>
+    val productivityScore: StateFlow<Int>
     val upcomingLecturesAlerts: StateFlow<List<SessionInfo>>
 
     // Custom In-App Toast state
@@ -92,6 +102,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isAiChatLoading = MutableStateFlow(false)
     val isAiChatLoading: StateFlow<Boolean> = _isAiChatLoading.asStateFlow()
+
+    // --- AI Copilot OS States ---
+    private val _aiRecommendations = MutableStateFlow<List<AiRecommendation>>(emptyList())
+    val aiRecommendations = _aiRecommendations.asStateFlow()
+
+    private val _scheduleOptimization = MutableStateFlow<ScheduleOptimization?>(null)
+    val scheduleOptimization = _scheduleOptimization.asStateFlow()
+
+    private val _studyCoachFeedback = MutableStateFlow<StudyCoachFeedback?>(null)
+    val studyCoachFeedback = _studyCoachFeedback.asStateFlow()
+
+    private val _isAiUpdating = MutableStateFlow(false)
+    val isAiUpdating = _isAiUpdating.asStateFlow()
 
     // Theme Preference State Flow
     private val sharedPrefs = application.getSharedPreferences("theme_prefs", Context.MODE_PRIVATE)
@@ -299,6 +322,96 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _habitsList = MutableStateFlow<List<Habit>>(emptyList())
     val habitsList: StateFlow<List<Habit>> = _habitsList.asStateFlow()
 
+    // Study Hub Ultimate States
+    data class StudySessionStats(
+        val xpEarned: Int = 0,
+        val pagesRead: Int = 0,
+        val notesTaken: Int = 0,
+        val flashcardsCreated: Int = 0,
+        val focusScore: Int = 0,
+        val startTime: Long = 0,
+        val durationSeconds: Int = 0
+    )
+
+    private val _isStudyHubActive = MutableStateFlow(false)
+    val isStudyHubActive: StateFlow<Boolean> = _isStudyHubActive.asStateFlow()
+
+    private val _activeStudyCourse = MutableStateFlow<Course?>(null)
+    val activeStudyCourse: StateFlow<Course?> = _activeStudyCourse.asStateFlow()
+
+    private val _studySessionStats = MutableStateFlow(StudySessionStats())
+    val studySessionStats: StateFlow<StudySessionStats> = _studySessionStats.asStateFlow()
+
+    private val _studyHubNotes = MutableStateFlow("")
+    val studyHubNotes: StateFlow<String> = _studyHubNotes.asStateFlow()
+
+    private val _isStudyHubImmersive = MutableStateFlow(false)
+    val isStudyHubImmersive: StateFlow<Boolean> = _isStudyHubImmersive.asStateFlow()
+
+    fun startStudyHubSession(course: Course) {
+        _activeStudyCourse.value = course
+        _isStudyHubActive.value = true
+        _studySessionStats.value = StudySessionStats(startTime = System.currentTimeMillis())
+        _isStudyHubImmersive.value = true
+        startPomodoro()
+    }
+
+    fun endStudyHubSession() {
+        _isStudyHubActive.value = false
+        _isStudyHubImmersive.value = false
+        pausePomodoro()
+        // Here we would typically save the session to the database
+    }
+
+    fun updateStudyNotes(notes: String) {
+        _studyHubNotes.value = notes
+        _studySessionStats.value = _studySessionStats.value.copy(
+            notesTaken = _studySessionStats.value.notesTaken + 1
+        )
+    }
+
+    // --- AI Copilot Methods ---
+    fun refreshAiDashboard() {
+        viewModelScope.launch {
+            _isAiUpdating.value = true
+            val recs = AiCopilotManager.getDashboardRecommendations(allCourses.value, appLanguage.value)
+            _aiRecommendations.value = recs
+            _isAiUpdating.value = false
+        }
+    }
+
+    fun runScheduleOptimization() {
+        viewModelScope.launch {
+            _isAiUpdating.value = true
+            val opt = AiCopilotManager.optimizeSchedule(allCourses.value, appLanguage.value)
+            _scheduleOptimization.value = opt
+            _isAiUpdating.value = false
+        }
+    }
+
+    fun dismissOptimization() {
+        _scheduleOptimization.value = null
+    }
+
+    fun updateStudyCoach() {
+        viewModelScope.launch {
+            val statsSummary = "Total Courses: ${allCourses.value.size}, Active: ${allCourses.value.count { it.status == "نشط" }}"
+            val feedback = AiCopilotManager.getStudyCoachFeedback(statsSummary, appLanguage.value)
+            _studyCoachFeedback.value = feedback
+        }
+    }
+
+    fun incrementPagesRead() {
+        _studySessionStats.value = _studySessionStats.value.copy(
+            pagesRead = _studySessionStats.value.pagesRead + 1,
+            xpEarned = _studySessionStats.value.xpEarned + 10
+        )
+    }
+
+    fun toggleStudyHubImmersive() {
+        _isStudyHubImmersive.value = !_isStudyHubImmersive.value
+    }
+
     private fun loadHabits() {
         val habitsStr = sharedPrefs.getString("habits_list_json", "[]") ?: "[]"
         try {
@@ -496,6 +609,44 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // Prepopulate if needed
         viewModelScope.launch {
             repository.ensurePrepopulated(application)
+            
+            // Phase 09: Prepopulate analytics data if empty
+            val sessions = repository.allStudySessions.first()
+            if (sessions.isEmpty()) {
+                val cal = java.util.Calendar.getInstance()
+                // Last 7 days mock sessions
+                for (i in 0 until 7) {
+                    val time = cal.timeInMillis - (i * 24 * 60 * 60 * 1000)
+                    repository.insertStudySession(application, com.example.models.StudySession(
+                        courseId = 1,
+                        startTime = time,
+                        durationMinutes = (30..180).random().toLong(),
+                        focusScore = (80..100).random()
+                    ))
+                }
+                
+                repository.insertGoal(application, com.example.models.StudyGoal(
+                    title = "إنهاء 20 ساعة دراسة هذا الأسبوع",
+                    targetMinutes = 1200,
+                    currentMinutes = 450,
+                    deadline = System.currentTimeMillis() + (3 * 24 * 60 * 60 * 1000)
+                ))
+
+                repository.insertGrade(application, com.example.models.Grade(
+                    courseId = 1,
+                    score = 95.0,
+                    maxScore = 100.0,
+                    weight = 0.2,
+                    category = "Exam"
+                ))
+                repository.insertGrade(application, com.example.models.Grade(
+                    courseId = 2,
+                    score = 88.0,
+                    maxScore = 100.0,
+                    weight = 0.3,
+                    category = "Midterm"
+                ))
+            }
         }
 
         // Keep local tracks (decrypt zoom account details on the fly for the UI layer)
@@ -534,6 +685,65 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+        allStudySessions = repository.allStudySessions.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        allGoals = repository.allGoals.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        allGrades = repository.allGrades.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+        totalStudyMinutes = allStudySessions.map { sessions ->
+            sessions.sumOf { it.durationMinutes }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0L)
+
+        weeklyStudyStats = allStudySessions.map { sessions ->
+            val now = System.currentTimeMillis()
+            val weekStart = now - (7 * 24 * 60 * 60 * 1000)
+            val stats = mutableMapOf<Int, Long>()
+            // 1: Sunday, 7: Saturday
+            (1..7).forEach { stats[it] = 0L }
+            
+            sessions.filter { it.startTime > weekStart }.forEach { session ->
+                val cal = java.util.Calendar.getInstance()
+                cal.timeInMillis = session.startTime
+                val day = cal.get(java.util.Calendar.DAY_OF_WEEK)
+                stats[day] = (stats[day] ?: 0L) + session.durationMinutes
+            }
+            stats
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
+
+        currentGpa = allGrades.map { grades ->
+            if (grades.isEmpty()) 0.0
+            else {
+                // Simplified GPA calculation: average of (score/max * 4.0)
+                val totalWeight = grades.sumOf { it.weight }
+                if (totalWeight == 0.0) 0.0
+                else {
+                    val weightedSum = grades.sumOf { (it.score / it.maxScore) * 4.0 * it.weight }
+                    weightedSum / totalWeight
+                }
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0.0)
+
+        productivityScore = allGoals.map { goals ->
+            if (goals.isEmpty()) 100
+            else {
+                val completed = goals.count { it.isCompleted }
+                (completed.toDouble() / goals.size * 100).toInt()
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 100)
 
         // Automatic Local Backup on changes
         viewModelScope.launch {
@@ -714,7 +924,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 com.example.services.DiagnosticLogger.log("INFO", "DB", "تم إضافة الدورة الجديدة '${newCourse.name}' بنجاح.")
             }
 
-            repository.insertCourse(newCourse)
+            repository.insertCourse(getApplication(), newCourse)
             recalculateSessions()
         }
     }
@@ -758,7 +968,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 com.example.services.DiagnosticLogger.log("INFO", "DB", "تم تحديث الدورة '${course.name}' بنجاح.")
             }
 
-            repository.updateCourse(encryptedCourse)
+            repository.updateCourse(getApplication(), encryptedCourse)
             recalculateSessions()
         }
     }
@@ -766,7 +976,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteCourse(course: Course) {
         viewModelScope.launch {
             com.example.services.DiagnosticLogger.log("INFO", "DB", "تم حذف الدورة '${course.name}' بنجاح.")
-            repository.deleteCourse(course)
+            repository.deleteCourse(getApplication(), course)
             recalculateSessions()
         }
     }
@@ -830,7 +1040,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             if (existing != null) {
                 // Cancel existing reminder
                 cancelSystemAlarm(context, existing)
-                repository.deleteReminder(existing)
+                repository.deleteReminder(getApplication(), existing)
                 Toast.makeText(context, "تم إلغاء التنبيه لـ $formattedDate", Toast.LENGTH_SHORT).show()
             } else {
                 // Calculate target timeInMillis
@@ -847,7 +1057,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isEnabled = true
                 )
 
-                val id = repository.insertReminder(reminder)
+                val id = repository.insertReminder(getApplication(), reminder)
                 val insertedReminder = reminder.copy(id = id)
 
                 scheduleSystemAlarm(context, insertedReminder, course)
@@ -859,7 +1069,50 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteReminder(reminder: ReminderEntity) {
         viewModelScope.launch {
             cancelSystemAlarm(getApplication(), reminder)
-            repository.deleteReminder(reminder)
+            repository.deleteReminder(getApplication(), reminder)
+        }
+    }
+
+    // Analytics Helper Methods
+    fun addStudySession(courseId: Int, durationMinutes: Long, focusScore: Int = 100) {
+        viewModelScope.launch {
+            repository.insertStudySession(
+                getApplication(),
+                com.example.models.StudySession(
+                    courseId = courseId,
+                    startTime = System.currentTimeMillis(),
+                    durationMinutes = durationMinutes,
+                    focusScore = focusScore
+                )
+            )
+        }
+    }
+
+    fun addGoal(title: String, targetMinutes: Int, deadline: Long) {
+        viewModelScope.launch {
+            repository.insertGoal(
+                getApplication(),
+                com.example.models.StudyGoal(
+                    title = title,
+                    targetMinutes = targetMinutes,
+                    deadline = deadline
+                )
+            )
+        }
+    }
+
+    fun addGrade(courseId: Int, score: Double, maxScore: Double, weight: Double, category: String) {
+        viewModelScope.launch {
+            repository.insertGrade(
+                getApplication(),
+                com.example.models.Grade(
+                    courseId = courseId,
+                    score = score,
+                    maxScore = maxScore,
+                    weight = weight,
+                    category = category
+                )
+            )
         }
     }
 
@@ -867,7 +1120,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             allReminders.value.forEach { reminder ->
                 cancelSystemAlarm(context, reminder)
-                repository.deleteReminder(reminder)
+                repository.deleteReminder(getApplication(), reminder)
             }
         }
     }
@@ -1205,7 +1458,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 com.example.services.DiagnosticLogger.log("INFO", "DB", "تم إضافة الدورة الجديدة '${courseToSave.name}' بنجاح.")
             }
 
-            repository.insertCourse(courseToSave)
+            repository.insertCourse(getApplication(), courseToSave)
             recalculateSessions()
             
             // Remove from preview list
@@ -1237,7 +1490,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 if (conflicts.isNotEmpty()) {
                     com.example.services.DiagnosticLogger.log("WARN", "ConflictDetector", "وجد تعارض بين '${courseToSave.name}' و '${conflicts[0].secondCourse.name}'.")
                 }
-                repository.insertCourse(courseToSave)
+                repository.insertCourse(getApplication(), courseToSave)
             }
             recalculateSessions()
             _parsedCoursesPreview.value = emptyList()

@@ -4,11 +4,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -18,9 +16,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.Dimens
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Dimens
 
 @Composable
 fun SmartTextField(
@@ -58,7 +56,7 @@ fun SmartTextField(
                     Text(
                         text = placeholder,
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        color = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             } else null,
@@ -67,7 +65,7 @@ fun SmartTextField(
                     Icon(
                         imageVector = leadingIcon,
                         contentDescription = null,
-                        tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                        tint = if (isError) AppTheme.colors.error else AppTheme.colors.primary
                     )
                 }
             } else null,
@@ -77,27 +75,27 @@ fun SmartTextField(
             maxLines = maxLines,
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
-            shape = RoundedCornerShape(Dimens.RadiusMedium),
+            shape = AppTheme.shapes.medium,
             textStyle = TextStyle(
                 fontSize = 13.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = AppTheme.colors.onSurface
             ),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                errorBorderColor = MaterialTheme.colorScheme.error,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                errorLabelColor = MaterialTheme.colorScheme.error
+                focusedBorderColor = AppTheme.colors.primary,
+                unfocusedBorderColor = AppTheme.colors.outline.copy(alpha = 0.3f),
+                errorBorderColor = AppTheme.colors.error,
+                focusedLabelColor = AppTheme.colors.primary,
+                unfocusedLabelColor = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.7f),
+                errorLabelColor = AppTheme.colors.error
             )
         )
 
         if (isError && errorMessage != null) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(AppTheme.spacing.ExtraSmall))
             Text(
                 text = errorMessage,
-                color = MaterialTheme.colorScheme.error,
+                color = AppTheme.colors.error,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Bold
             )

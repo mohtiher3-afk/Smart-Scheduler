@@ -23,7 +23,12 @@ data class Course(
     val colorHex: String = "#2563EB",
     val lectureNotesJson: String = "",
     val lectureMeetingsJson: String = "",
-    val category: String = "عام"
+    val category: String = "عام",
+    // Sync Metadata
+    val remoteId: String? = null,
+    val lastUpdated: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false,
+    val syncStatus: Int = 0 // 0: Synced, 1: Pending, 2: Deleted (Local Only)
 ) {
     fun getLectureMeetingDate(lectureIndex: Int): String {
         return try {

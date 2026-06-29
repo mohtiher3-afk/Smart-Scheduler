@@ -10,5 +10,10 @@ data class ReminderEntity(
     val courseName: String,
     val sessionDate: String, // "yyyy-MM-dd"
     val timeInMillis: Long,
-    val isEnabled: Boolean = true
+    val isEnabled: Boolean = true,
+    // Sync Metadata
+    val remoteId: String? = null,
+    val lastUpdated: Long = System.currentTimeMillis(),
+    val isDeleted: Boolean = false,
+    val syncStatus: Int = 0 // 0: Synced, 1: Pending, 2: Deleted (Local Only)
 )

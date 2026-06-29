@@ -17,8 +17,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.Dimens
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Dimens
+import com.example.core.designsystem.theme.Motion
 
 data class NavigationTabItem(
     val index: Int,
@@ -39,7 +40,7 @@ fun SmartBottomBar(
         modifier = modifier
             .navigationBarsPadding()
             .let { if (testTag != null) it.testTag(testTag) else it },
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = AppTheme.colors.surface,
         tonalElevation = Dimens.SpaceSmall
     ) {
         tabs.forEach { tab ->
@@ -73,11 +74,11 @@ fun SmartBottomBar(
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.primary,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                    selectedIconColor = AppTheme.colors.primary,
+                    unselectedIconColor = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.7f),
+                    selectedTextColor = AppTheme.colors.primary,
+                    unselectedTextColor = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.7f),
+                    indicatorColor = AppTheme.colors.primaryContainer
                 ),
                 modifier = Modifier.testTag(tab.testTag)
             )

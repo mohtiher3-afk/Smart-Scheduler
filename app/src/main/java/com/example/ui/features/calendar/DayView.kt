@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.Course
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 import java.util.*
 
 @Composable
@@ -54,21 +54,21 @@ fun DayView(
         modifier = modifier
             .fillMaxSize()
             .testTag("day_view_container")
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppTheme.colors.background)
     ) {
         if (dayCourses.isEmpty()) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(32.dp)
-                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                    .background(AppTheme.colors.surface, AppTheme.shapes.medium)
                     .padding(32.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = if (currentLanguage == "ar") "لا توجد محاضرات في هذا اليوم" else "No lectures scheduled for this day",
                     style = AppTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AppTheme.colors.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 )
@@ -103,7 +103,7 @@ fun DayView(
                             text = hourLabel,
                             style = AppTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                color = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.6f),
                                 fontSize = 12.sp
                             ),
                             modifier = Modifier
@@ -144,7 +144,7 @@ private fun DayCourseBlock(
     context: Context,
     currentLanguage: String
 ) {
-    val defaultColor = MaterialTheme.colorScheme.primary
+    val defaultColor = AppTheme.colors.primary
     val courseColor = remember(course.colorHex, defaultColor) {
         try {
             Color(android.graphics.Color.parseColor(course.colorHex))
@@ -177,7 +177,7 @@ private fun DayCourseBlock(
                     text = course.name,
                     style = AppTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppTheme.colors.onSurface
                     )
                 )
 
@@ -186,7 +186,7 @@ private fun DayCourseBlock(
                 Text(
                     text = "${course.timeStart} - ${course.timeEnd}",
                     style = AppTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = AppTheme.colors.onSurfaceVariant,
                         fontWeight = FontWeight.Medium
                     )
                 )

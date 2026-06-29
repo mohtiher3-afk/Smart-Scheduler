@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.models.SessionInfo
 import com.example.ui.components.SmartEmptyState
-import com.example.ui.material3_foundation.AppTheme
+import com.example.core.designsystem.theme.AppTheme
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -58,7 +58,7 @@ fun AgendaView(
         modifier = modifier
             .fillMaxSize()
             .testTag("agenda_view_container")
-            .background(MaterialTheme.colorScheme.background)
+            .background(AppTheme.colors.background)
     ) {
         if (courses.isEmpty() || agendaSessions.isEmpty()) {
             SmartEmptyState(
@@ -90,7 +90,7 @@ fun AgendaView(
                             text = formattedHeader,
                             style = AppTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.primary,
+                                color = AppTheme.colors.primary,
                                 fontSize = 15.sp
                             ),
                             modifier = Modifier.padding(start = 4.dp, top = 8.dp)
@@ -118,7 +118,7 @@ private fun AgendaSessionItem(
     currentLanguage: String,
     courseColorHex: String
 ) {
-    val defaultColor = MaterialTheme.colorScheme.primary
+    val defaultColor = AppTheme.colors.primary
     val courseColor = remember(courseColorHex, defaultColor) {
         try {
             Color(android.graphics.Color.parseColor(courseColorHex))
@@ -134,7 +134,7 @@ private fun AgendaSessionItem(
             .testTag("agenda_session_${session.courseId}"),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = AppTheme.colors.surface
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
@@ -160,7 +160,7 @@ private fun AgendaSessionItem(
                     text = session.courseName,
                     style = AppTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = AppTheme.colors.onSurface
                     )
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -170,14 +170,14 @@ private fun AgendaSessionItem(
                     Icon(
                         imageVector = Icons.Rounded.Videocam,
                         contentDescription = "Time",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = AppTheme.colors.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = session.timeStart,
                         style = AppTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = AppTheme.colors.onSurfaceVariant,
                             fontSize = 12.sp
                         )
                     )

@@ -21,8 +21,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.material3_foundation.AppTheme
-import com.example.ui.material3_foundation.Motion
+import com.example.core.designsystem.theme.AppTheme
+import com.example.core.designsystem.theme.Motion
 
 enum class SmartChipType {
     Filter, Suggestion, Assist, Input

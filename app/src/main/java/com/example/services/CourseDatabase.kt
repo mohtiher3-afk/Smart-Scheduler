@@ -6,8 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.models.Course
 import com.example.models.ReminderEntity
+import com.example.models.StudySession
+import com.example.models.StudyGoal
+import com.example.models.Grade
 
-@Database(entities = [Course::class, ReminderEntity::class], version = 8, exportSchema = false)
+@Database(
+    entities = [
+        Course::class, 
+        ReminderEntity::class,
+        StudySession::class,
+        StudyGoal::class,
+        Grade::class
+    ], 
+    version = 10, 
+    exportSchema = false
+)
 abstract class CourseDatabase : RoomDatabase() {
     abstract fun courseDao(): CourseDao
 
