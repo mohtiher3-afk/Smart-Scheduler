@@ -33,6 +33,7 @@ import com.example.models.ReminderEntity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
@@ -54,7 +55,7 @@ fun RemindersTab(
     var playingPreviewSound by remember { mutableStateOf<String?>(null) }
     var showSoundSettings by remember { mutableStateOf(false) }
 
-    val locale = remember(currentLang) { if (currentLang == "ar") Locale("ar") else Locale.US }
+    val locale = remember(currentLang) { if (currentLang == "ar") Locale.forLanguageTag("ar") else Locale.US }
     val dateFormat = remember(locale) { SimpleDateFormat("yyyy-MM-dd", locale) }
     val timeFormat = remember(locale) { SimpleDateFormat("hh:mm a", locale) }
 
@@ -492,7 +493,7 @@ fun RemindersTab(
                                     modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
-                                        imageVector = if (playingPreviewSound == selectedSound) Icons.Rounded.Stop else Icons.Rounded.VolumeUp,
+                                        imageVector = if (playingPreviewSound == selectedSound) Icons.Rounded.Stop else Icons.AutoMirrored.Rounded.VolumeUp,
                                         contentDescription = "Test sound preview",
                                         modifier = Modifier.size(16.dp)
                                     )

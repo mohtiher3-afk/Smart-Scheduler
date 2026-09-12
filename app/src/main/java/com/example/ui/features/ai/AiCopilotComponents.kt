@@ -182,7 +182,7 @@ fun AiCoachFeedbackCard(feedback: StudyCoachFeedback) {
                         Text("${feedback.score}/100", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black)
                     }
                     CircularProgressIndicator(
-                        progress = feedback.score / 100f,
+                        progress = { feedback.score / 100f },
                         modifier = Modifier.size(36.dp),
                         strokeWidth = 4.dp,
                         color = MaterialTheme.colorScheme.primary

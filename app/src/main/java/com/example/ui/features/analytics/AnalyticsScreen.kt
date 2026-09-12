@@ -27,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.screens.MainViewModel
+import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,7 +49,7 @@ fun AnalyticsScreen(
                 title = { Text("مركز التحليلات والذكاء", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     }
                 }
             )
@@ -116,7 +118,7 @@ fun AnalyticsHeader(minutes: Long, gpa: Double, productivity: Int) {
         StatCard(
             modifier = Modifier.weight(1f),
             title = "المعدل التراكمي",
-            value = String.format("%.2f", gpa),
+            value = String.format(Locale.US, "%.2f", gpa),
             icon = Icons.Rounded.School,
             color = Color(0xFF4CAF50)
         )
@@ -254,7 +256,7 @@ fun GoalItem(goal: com.example.models.StudyGoal) {
             }
             Spacer(modifier = Modifier.height(8.dp))
             LinearProgressIndicator(
-                progress = if (goal.targetMinutes > 0) goal.currentMinutes.toFloat() / goal.targetMinutes else 0f,
+                progress = { if (goal.targetMinutes > 0) goal.currentMinutes.toFloat() / goal.targetMinutes else 0f },
                 modifier = Modifier.fillMaxWidth().height(6.dp).clip(CircleShape)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -334,7 +336,7 @@ fun SessionItem(session: com.example.models.StudySession) {
                 Text("جلسة دراسة", fontWeight = FontWeight.Medium)
                 Text("${session.durationMinutes} دقيقة • تركيز ${session.focusScore}%", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            val date = java.text.SimpleDateFormat("MMM dd", java.util.Locale("ar")).format(java.util.Date(session.startTime))
+            val date = java.text.SimpleDateFormat("MMM dd", java.util.Locale.forLanguageTag("ar")).format(java.util.Date(session.startTime))
             Text(date, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }

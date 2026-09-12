@@ -41,6 +41,9 @@ import com.example.models.Course
 import com.example.screens.Loc
 import com.example.ui.navigation.Screen
 import java.util.Calendar
+import androidx.core.graphics.toColorInt
+import androidx.compose.material.icons.automirrored.rounded.PlaylistAddCheck
+import androidx.compose.material.icons.automirrored.rounded.Article
 
 // Data models for Mockup Screens
 data class TaskItem(
@@ -438,7 +441,7 @@ fun TasksTab(
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
-                            imageVector = Icons.Rounded.PlaylistAddCheck,
+                            imageVector = Icons.AutoMirrored.Rounded.PlaylistAddCheck,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
                             modifier = Modifier.size(64.dp)
@@ -627,7 +630,7 @@ fun CoursesScreen(
             items(courses) { course ->
                 val progress = if (course.targetCount > 0) course.completedCount.toFloat() / course.targetCount else 0f
                 val color = try {
-                    Color(android.graphics.Color.parseColor(course.colorHex))
+                    Color(course.colorHex.toColorInt())
                 } catch (e: Exception) {
                     MaterialTheme.colorScheme.primary
                 }
@@ -945,7 +948,7 @@ fun CalendarScreen(
                     } else {
                         items(selectedDayLectures) { course ->
                             val color = try {
-                                Color(android.graphics.Color.parseColor(course.colorHex))
+                                Color(course.colorHex.toColorInt())
                             } catch (e: Exception) {
                                 MaterialTheme.colorScheme.primary
                             }
@@ -1025,7 +1028,7 @@ fun CalendarScreen(
                                             horizontalArrangement = Arrangement.SpaceBetween
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                                val c = try { Color(android.graphics.Color.parseColor(course.colorHex)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
+                                                val c = try { Color(course.colorHex.toColorInt()) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
                                                 Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(c))
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(text = course.name, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1080,7 +1083,7 @@ fun CalendarScreen(
                                                 .background(MaterialTheme.colorScheme.outlineVariant)
                                         )
                                         if (matchedLecture != null) {
-                                            val col = try { Color(android.graphics.Color.parseColor(matchedLecture.colorHex)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
+                                            val col = try { Color(matchedLecture.colorHex.toColorInt()) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
                                             Card(
                                                 modifier = Modifier.padding(start = 8.dp).widthIn(max = 160.dp),
                                                 shape = RoundedCornerShape(8.dp),
@@ -1125,7 +1128,7 @@ fun CalendarScreen(
                         }
                     } else {
                         items(activeCourses) { course ->
-                            val col = try { Color(android.graphics.Color.parseColor(course.colorHex)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
+                            val col = try { Color(course.colorHex.toColorInt()) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
@@ -1729,7 +1732,7 @@ fun FilesScreen(
                         "PDF" -> Icons.Rounded.PictureAsPdf
                         "PPTX" -> Icons.Rounded.Slideshow
                         "ZIP" -> Icons.Rounded.FolderZip
-                        else -> Icons.Rounded.Article
+                        else -> Icons.AutoMirrored.Rounded.Article
                     }
 
                     val fileColor = when (file.fileType) {

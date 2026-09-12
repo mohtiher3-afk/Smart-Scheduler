@@ -33,6 +33,7 @@ import com.example.services.GeminiClient
 import com.example.services.LocalStorageBackup
 import com.example.services.CSVExporter
 import com.example.ai.*
+import androidx.core.content.edit
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -130,12 +131,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
     fun setDynamicColorEnabled(enabled: Boolean) {
-        sharedPrefs.edit().putBoolean("dynamic_color", enabled).apply()
+        sharedPrefs.edit { putBoolean("dynamic_color", enabled) }
         _dynamicColorEnabled.value = enabled
     }
 
     fun setThemeMode(mode: String) {
-        sharedPrefs.edit().putString("theme_mode", mode).apply()
+        sharedPrefs.edit { putString("theme_mode", mode) }
         _themeMode.value = mode
     }
 
@@ -152,7 +153,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setAppLanguage(lang: String) {
-        sharedPrefs.edit().putString("app_language", lang).apply()
+        sharedPrefs.edit { putString("app_language", lang) }
         _appLanguage.value = lang
     }
 
@@ -166,7 +167,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val alertSound: StateFlow<String> = _alertSound.asStateFlow()
 
     fun setAlertSound(sound: String) {
-        sharedPrefs.edit().putString("alert_sound", sound).apply()
+        sharedPrefs.edit { putString("alert_sound", sound) }
         _alertSound.value = sound
     }
 
@@ -191,12 +192,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted.asStateFlow()
 
     fun completeOnboarding() {
-        sharedPrefs.edit().putBoolean("onboarding_completed", true).apply()
+        sharedPrefs.edit { putBoolean("onboarding_completed", true) }
         _onboardingCompleted.value = true
     }
 
     fun resetOnboarding() {
-        sharedPrefs.edit().putBoolean("onboarding_completed", false).apply()
+        sharedPrefs.edit { putBoolean("onboarding_completed", false) }
         _onboardingCompleted.value = false
     }
 
@@ -211,13 +212,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val registeredPin: StateFlow<String> = _registeredPin.asStateFlow()
 
     fun enablePinLock(pin: String) {
-        sharedPrefs.edit().putBoolean("pin_lock_enabled", true).putString("registered_pin", pin).apply()
+        sharedPrefs.edit { putBoolean("pin_lock_enabled", true); putString("registered_pin", pin) }
         _pinLockEnabled.value = true
         _registeredPin.value = pin
     }
 
     fun disablePinLock() {
-        sharedPrefs.edit().putBoolean("pin_lock_enabled", false).apply()
+        sharedPrefs.edit { putBoolean("pin_lock_enabled", false) }
         _pinLockEnabled.value = false
     }
 
@@ -259,7 +260,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var pomodoroJob: kotlinx.coroutines.Job? = null
 
     fun setPomodoroDurations(focusMin: Int, breakMin: Int) {
-        sharedPrefs.edit().putInt("pomodoro_focus_min", focusMin).putInt("pomodoro_break_min", breakMin).apply()
+        sharedPrefs.edit { putInt("pomodoro_focus_min", focusMin); putInt("pomodoro_break_min", breakMin) }
         _pomodoroSelectedFocusMin.value = focusMin
         _pomodoroSelectedBreakMin.value = breakMin
         resetPomodoro()
@@ -277,7 +278,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _pomodoroIsRunning.value = false
             if (_pomodoroIsFocus.value) {
                 _pomodoroCompletedCount.value += 1
-                sharedPrefs.edit().putInt("pomodoro_completed_count", _pomodoroCompletedCount.value).apply()
+                sharedPrefs.edit { putInt("pomodoro_completed_count", _pomodoroCompletedCount.value) }
                 _pomodoroIsFocus.value = false
                 _pomodoroRemainingTime.value = _pomodoroSelectedBreakMin.value * 60
                 _pomodoroTotalTime.value = _pomodoroSelectedBreakMin.value * 60
@@ -452,7 +453,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 obj.put("streak", habit.streak)
                 arr.put(obj)
             }
-            sharedPrefs.edit().putString("habits_list_json", arr.toString()).apply()
+            sharedPrefs.edit { putString("habits_list_json", arr.toString()) }
             _habitsList.value = list
         } catch (e: Exception) {
             e.printStackTrace()
@@ -564,7 +565,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
                 obj.put(courseId.toString(), arr)
             }
-            sharedPrefs.edit().putString("subtasks_list_json", obj.toString()).apply()
+            sharedPrefs.edit { putString("subtasks_list_json", obj.toString()) }
             _subtasksList.value = map
         } catch (e: Exception) {
             e.printStackTrace()
@@ -992,11 +993,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 putExtra("courseId", 9999L)
             }
 
-            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
+            val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -1136,11 +1133,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 putExtra("courseId", reminder.id)
             }
 
-            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
+            val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -1161,11 +1154,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val intent = Intent(context, AlarmReceiver::class.java)
             
-            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
+            val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -1220,7 +1209,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (dayIndices.isEmpty()) return null
 
         val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
+        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ar"))
 
         // We check up to 14 days in the future to find the next session
         for (i in 0..14) {
@@ -1360,11 +1349,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 putExtra("courseId", session.courseId.toLong() + 100000L) // Safe unique index offset
             }
 
-            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            } else {
-                PendingIntent.FLAG_UPDATE_CURRENT
-            }
+            val pendingIntentFlags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
 
             val pendingIntent = PendingIntent.getBroadcast(
                 context,
@@ -1387,19 +1372,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
                 }
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             }
         } catch (e: SecurityException) {
             e.printStackTrace()
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                } else {
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                }
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
             } catch (ex: Exception) {
                 ex.printStackTrace()
             }

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.core.designsystem.theme.AppTheme
 import java.util.*
+import androidx.core.graphics.toColorInt
 
 @Composable
 fun MonthView(
@@ -184,7 +185,7 @@ private fun DayItem(
             scheduledCourses.take(3).forEach { course ->
                 val dotColor = remember(course.colorHex) {
                     try {
-                        Color(android.graphics.Color.parseColor(course.colorHex))
+                        Color(course.colorHex.toColorInt())
                     } catch (e: Exception) {
                         Color.Gray
                     }

@@ -57,6 +57,8 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.Note
 
 // 1. FOCUS MODE STATE MANAGER
 object FocusModeManager {
@@ -106,7 +108,7 @@ fun HomeScreen(
             NavItem(Screen.Schedule, Icons.Rounded.CalendarMonth, if (currentLang == "ar") "الجدول" else "Schedule"),
             NavItem(Screen.Calendar, Icons.Rounded.DateRange, if (currentLang == "ar") "التقويم" else "Calendar"),
             NavItem(Screen.Analytics, Icons.Rounded.Analytics, if (currentLang == "ar") "التحليلات" else "Analytics"),
-            NavItem(Screen.Notes, Icons.Rounded.Note, if (currentLang == "ar") "ملاحظات" else "Notes")
+            NavItem(Screen.Notes, Icons.AutoMirrored.Rounded.Note, if (currentLang == "ar") "ملاحظات" else "Notes")
         )
     }
 
@@ -294,7 +296,7 @@ fun HomeScreen(
 fun FocusModeOverlay(currentLang: String, deepNavy: Color, accentBlue: Color) {
     Box(modifier = Modifier.fillMaxSize().background(Color.White).padding(24.dp)) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center, modifier = Modifier.fillMaxSize()) {
-            Text("${FocusModeManager.timeLeftSeconds / 60}:${String.format("%02d", FocusModeManager.timeLeftSeconds % 60)}", fontSize = 60.sp, fontWeight = FontWeight.Black)
+            Text("${FocusModeManager.timeLeftSeconds / 60}:${String.format(Locale.US, "%02d", FocusModeManager.timeLeftSeconds % 60)}", fontSize = 60.sp, fontWeight = FontWeight.Black)
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 Button(onClick = { FocusModeManager.isTimerRunning = !FocusModeManager.isTimerRunning }) { Text(if (FocusModeManager.isTimerRunning) "Pause" else "Start") }
                 Button(onClick = { FocusModeManager.isFocusModeActive = false }) { Text("Exit") }
@@ -394,7 +396,7 @@ fun AnalyticsWidget(minutes: Long, gpa: Double, onNavigate: () -> Unit) {
                 }
                 Column {
                     Text("المعدل الحالي", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(String.format("%.2f", gpa), fontWeight = FontWeight.Bold)
+                    Text(String.format(Locale.US, "%.2f", gpa), fontWeight = FontWeight.Bold)
                 }
             }
         }

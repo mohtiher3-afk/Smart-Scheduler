@@ -30,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.InAppToastData
 import kotlinx.coroutines.delay
+import androidx.core.net.toUri
 
 @Composable
 fun CustomInAppToast(
@@ -222,7 +223,7 @@ fun CustomInAppToast(
                         val zoomLink = toastData.zoomLink
                         if (zoomLink.startsWith("http://") || zoomLink.startsWith("https://") || zoomLink.contains(".zoom.us") || zoomLink.contains("zoom")) {
                             try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(zoomLink))
+                                val intent = Intent(Intent.ACTION_VIEW, zoomLink.toUri())
                                 context.startActivity(intent)
                             } catch (e: Exception) {
                                 Toast.makeText(

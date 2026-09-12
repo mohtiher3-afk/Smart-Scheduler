@@ -3,6 +3,7 @@ package com.example.services
 import android.content.Context
 import android.util.Base64
 import java.nio.charset.StandardCharsets
+import androidx.core.content.edit
 
 object SecurityHelper {
     private const val PREFS_NAME = "encrypted_secure_prefs"
@@ -52,10 +53,9 @@ object SecurityHelper {
      */
     fun saveSecureSetting(context: Context, key: String, value: String) {
         val encryptedValue = encryptZoomLink(value)
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putString(key, encryptedValue)
-            .apply()
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit {
+            putString(key, encryptedValue)
+        }
     }
 
     fun getSecureSetting(context: Context, key: String, defaultValue: String = ""): String {

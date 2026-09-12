@@ -35,6 +35,9 @@ import com.example.screens.LocalAppLanguage
 import com.example.screens.MainViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.core.graphics.toColorInt
+import java.util.Locale
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -219,7 +222,7 @@ fun StudyHubStartScreen(
                         modifier = Modifier
                             .size(16.dp)
                             .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(course.colorHex)))
+                            .background(Color(course.colorHex.toColorInt()))
                     )
                     Spacer(modifier = Modifier.width(16.dp))
                     Text(
@@ -302,7 +305,7 @@ fun StudyEnvironment(
                         modifier = Modifier
                             .size(10.dp)
                             .clip(CircleShape)
-                            .background(Color(android.graphics.Color.parseColor(course.colorHex)))
+                            .background(Color(course.colorHex.toColorInt()))
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
@@ -339,7 +342,7 @@ fun StudyEnvironment(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "${pomodoroTime / 60}:${String.format("%02d", pomodoroTime % 60)}",
+                            text = "${pomodoroTime / 60}:${String.format(Locale.US, "%02d", pomodoroTime % 60)}",
                             fontWeight = FontWeight.Black,
                             fontSize = 16.sp,
                             fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
@@ -379,7 +382,7 @@ fun StudyEnvironment(
             NavigationBarItem(
                 selected = activeTab == 0,
                 onClick = { activeTab = 0 },
-                icon = { Icon(Icons.Rounded.MenuBook, null) },
+                icon = { Icon(Icons.AutoMirrored.Rounded.MenuBook, null) },
                 label = { Text(if (currentLang == "ar") "المادة" else "Course") }
             )
             NavigationBarItem(
@@ -653,7 +656,7 @@ fun StudySessionSummaryDialog(
                     label = if (currentLang == "ar") "المدة" else "Duration"
                 )
                 SummaryStatItem(
-                    icon = Icons.Rounded.MenuBook,
+                    icon = Icons.AutoMirrored.Rounded.MenuBook,
                     value = "${stats.pagesRead}",
                     label = if (currentLang == "ar") "صفحة" else "Pages"
                 )

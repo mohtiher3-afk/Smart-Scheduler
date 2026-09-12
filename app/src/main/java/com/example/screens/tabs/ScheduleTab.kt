@@ -25,7 +25,7 @@ import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.Link
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.rounded.Close
@@ -64,6 +64,8 @@ import com.example.screens.Loc
 import com.example.widgets.CourseCard
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.net.toUri
+import androidx.core.content.edit
 
 @Composable
 fun FilterChipM3(
@@ -183,8 +185,8 @@ fun ScheduleTab(
     var lastSyncTime by remember {
         mutableStateOf(
             sharedPrefs.getString("last_sync_time", null) ?: run {
-                val now = java.text.SimpleDateFormat("yyyy/MM/dd hh:mm a", java.util.Locale(currentLang)).format(java.util.Date())
-                sharedPrefs.edit().putString("last_sync_time", now).apply()
+                val now = java.text.SimpleDateFormat("yyyy/MM/dd hh:mm a", java.util.Locale.forLanguageTag(currentLang)).format(java.util.Date())
+                sharedPrefs.edit { putString("last_sync_time", now) }
                 now
             }
         )
@@ -200,8 +202,8 @@ fun ScheduleTab(
             coroutineScope.launch {
                 onRefresh()
                 delay(1200) // Delightful Material 3 synchronization animation delay
-                val now = java.text.SimpleDateFormat("yyyy/MM/dd hh:mm a", java.util.Locale(currentLang)).format(java.util.Date())
-                sharedPrefs.edit().putString("last_sync_time", now).apply()
+                val now = java.text.SimpleDateFormat("yyyy/MM/dd hh:mm a", java.util.Locale.forLanguageTag(currentLang)).format(java.util.Date())
+                sharedPrefs.edit { putString("last_sync_time", now) }
                 lastSyncTime = now
                 isRefreshing = false
                 val toastText = if (currentLang == "ar") "تمت إعادة مزامنة مواعيد المحاضرات والتنبيهات المجدولة بنجاح! 🔄" else "Lectures and alerts synchronized successfully! 🔄"
@@ -601,7 +603,7 @@ fun ScheduleTab(
                             modifier = Modifier.testTag("multi_select_toggle_button")
                         ) {
                             Icon(
-                                imageVector = if (isSelectionModeActive) Icons.Rounded.Close else Icons.Rounded.List,
+                                imageVector = if (isSelectionModeActive) Icons.Rounded.Close else Icons.AutoMirrored.Rounded.List,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -675,7 +677,7 @@ fun ScheduleTab(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.List,
+                            imageVector = Icons.AutoMirrored.Rounded.List,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.secondary,
                             modifier = Modifier.size(14.dp)
@@ -867,7 +869,7 @@ fun ScheduleTab(
                                 }
                             }
 
-                            Divider(
+                            HorizontalDivider(
                                 color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
                                 thickness = 1.dp,
                                 modifier = Modifier.padding(horizontal = 14.dp)
@@ -1119,9 +1121,7 @@ fun ScheduleTab(
                                                 IconButton(
                                                     onClick = {
                                                         try {
-                                                            val webIntent = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(
-                                                                if (!alert.zoomAccount.startsWith("http")) "https://" + alert.zoomAccount else alert.zoomAccount
-                                                            ))
+                                                            val webIntent = Intent(Intent.ACTION_VIEW, (if (!alert.zoomAccount.startsWith("http")) "https://" + alert.zoomAccount else alert.zoomAccount).toUri())
                                                             context.startActivity(webIntent)
                                                         } catch(e: Exception) {
                                                             val invalidLinkText = if (currentLang == "ar") "الرابط غير صالح للفتح المباشر" else "Invalid zoom/account URL"

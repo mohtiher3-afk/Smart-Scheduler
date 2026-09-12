@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.ui.components.SmartEmptyState
 import com.example.core.designsystem.theme.AppTheme
+import androidx.core.graphics.toColorInt
 
 @Composable
 fun TimelineView(
@@ -76,7 +77,7 @@ fun TimelineView(
                     val colorHex = course.colorHex
                     val courseColor = remember(colorHex) {
                         try {
-                            Color(android.graphics.Color.parseColor(colorHex))
+                            Color(colorHex.toColorInt())
                         } catch (e: Exception) {
                             Color.Blue
                         }
@@ -113,7 +114,7 @@ fun TimelineView(
                 val defaultColor = AppTheme.colors.primary
                 val courseColor = remember(course.colorHex, defaultColor) {
                     try {
-                        Color(android.graphics.Color.parseColor(course.colorHex))
+                        Color(course.colorHex.toColorInt())
                     } catch (e: Exception) {
                         defaultColor
                     }

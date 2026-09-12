@@ -58,6 +58,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -707,7 +709,7 @@ fun SettingsDialog(
                                     verticalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     LinearProgressIndicator(
-                                        progress = state.progress,
+                                        progress = { state.progress },
                                         modifier = Modifier.fillMaxWidth()
                                     )
                                     Text(
@@ -1404,7 +1406,7 @@ fun OnboardingScreenView(
                             fontWeight = FontWeight.Black
                         )
                         Icon(
-                            imageVector = if (currentLang == "ar") Icons.Rounded.ArrowBack else Icons.Rounded.ArrowForward,
+                            imageVector = if (currentLang == "ar") Icons.AutoMirrored.Rounded.ArrowBack else Icons.AutoMirrored.Rounded.ArrowForward,
                             contentDescription = null,
                             modifier = Modifier.size(16.dp)
                         )

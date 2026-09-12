@@ -25,6 +25,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.services.CloudSyncManager
 import com.example.sync.SyncManager
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +43,7 @@ fun SyncCenterScreen(
                 title = { Text("مركز المزامنة السحابية", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Rounded.ArrowBack, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = null)
                     }
                 }
             )
@@ -150,7 +151,7 @@ fun SyncStatusCard(state: CloudSyncManager.SyncState, lastSync: String) {
             if (state is CloudSyncManager.SyncState.Syncing) {
                 Spacer(modifier = Modifier.height(16.dp))
                 LinearProgressIndicator(
-                    progress = state.progress,
+                    progress = { state.progress },
                     modifier = Modifier.fillMaxWidth().clip(CircleShape),
                     strokeCap = StrokeCap.Round
                 )
@@ -247,7 +248,7 @@ fun CloudUsageCard() {
             }
             Spacer(modifier = Modifier.height(12.dp))
             LinearProgressIndicator(
-                progress = 0.24f,
+                progress = { 0.24f },
                 modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
                 strokeCap = StrokeCap.Round
             )

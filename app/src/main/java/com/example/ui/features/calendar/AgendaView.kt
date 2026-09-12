@@ -31,6 +31,8 @@ import com.example.ui.components.SmartEmptyState
 import com.example.core.designsystem.theme.AppTheme
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 
 @Composable
 fun AgendaView(
@@ -121,7 +123,7 @@ private fun AgendaSessionItem(
     val defaultColor = AppTheme.colors.primary
     val courseColor = remember(courseColorHex, defaultColor) {
         try {
-            Color(android.graphics.Color.parseColor(courseColorHex))
+            Color(courseColorHex.toColorInt())
         } catch (e: Exception) {
             defaultColor
         }
@@ -188,7 +190,7 @@ private fun AgendaSessionItem(
                 Button(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(session.zoomAccount))
+                            val intent = Intent(Intent.ACTION_VIEW, session.zoomAccount.toUri())
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Cannot open Zoom link", Toast.LENGTH_SHORT).show()
@@ -216,7 +218,7 @@ private fun AgendaSessionItem(
 fun generateUpcomingSessions(courses: List<Course>, daysAhead: Int): List<SessionInfo> {
     val list = mutableListOf<SessionInfo>()
     val sdfDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-    val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
+    val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ar"))
 
     val activeCourses = courses.filter { it.status == "نشط" }
 

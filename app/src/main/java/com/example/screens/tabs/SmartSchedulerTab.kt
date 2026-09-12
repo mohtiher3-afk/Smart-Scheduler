@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.screens.MainViewModel
+import androidx.compose.material.icons.automirrored.rounded.Send
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -119,7 +120,7 @@ fun SmartSchedulerTab(
             )
         }
 
-        Divider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
         if (subTabSelected == 0) {
             // Tab 0: Smart Course Parser
@@ -844,7 +845,7 @@ fun SmartSchedulerTab(
                         enabled = aiChatInput.trim().isNotEmpty() && !isAiChatLoading
                     ) {
                         Icon(
-                            imageVector = Icons.Rounded.Send,
+                            imageVector = Icons.AutoMirrored.Rounded.Send,
                             contentDescription = "إرسال",
                             tint = if (aiChatInput.trim().isNotEmpty() && !isAiChatLoading)
                                 MaterialTheme.colorScheme.onPrimary

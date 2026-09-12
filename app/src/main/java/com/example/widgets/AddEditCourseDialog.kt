@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.models.Course
+import androidx.core.graphics.toColorInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -638,7 +639,7 @@ fun AddEditCourseDialog(
                             ) {
                                 colorOptions.forEach { (hex, colorName) ->
                                     val parsedColor = try {
-                                        Color(android.graphics.Color.parseColor(hex))
+                                        Color(hex.toColorInt())
                                     } catch (e: Exception) {
                                         primaryColor
                                     }

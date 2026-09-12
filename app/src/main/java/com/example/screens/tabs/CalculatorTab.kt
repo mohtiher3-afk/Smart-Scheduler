@@ -27,7 +27,7 @@ import androidx.compose.material.icons.rounded.Pause
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.List
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material3.*
@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.text.style.TextAlign
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.graphics.toColorInt
 
 @Composable
 fun CalculatorTab(
@@ -91,12 +92,12 @@ fun CalculatorTab(
     val activeCourse = courses.find { it.id.toLong() == selectedCourseId }
     val activeCourseColor = remember(activeCourse?.colorHex) {
         try {
-            Color(android.graphics.Color.parseColor(activeCourse?.colorHex ?: "#2563EB"))
+            Color((activeCourse?.colorHex ?: "#2563EB").toColorInt())
         } catch (e: Exception) {
             Color(0xFF2563EB)
         }
     }
-    val formatterOutStr = remember(currentLang) { SimpleDateFormat("d MMM yyyy", Locale(currentLang)) }
+    val formatterOutStr = remember(currentLang) { SimpleDateFormat("d MMM yyyy", Locale.forLanguageTag(currentLang)) }
 
     val startFormatted = remember(startDate) {
         SchedulerUtils.parseDate(startDate)?.let { formatterOutStr.format(it) } ?: startDate
@@ -827,7 +828,7 @@ fun CalculatorTab(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Rounded.List,
+                                        imageVector = Icons.AutoMirrored.Rounded.List,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
@@ -954,7 +955,7 @@ fun CalculatorTab(
             val past7Days = remember(currentLang) {
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, -6)
-                val formatterDay = SimpleDateFormat("EEE", Locale(currentLang))
+                val formatterDay = SimpleDateFormat("EEE", Locale.forLanguageTag(currentLang))
                 val list = mutableListOf<Triple<String, String, Boolean>>()
                 for (i in 0..6) {
                     val dateString = sdf.format(cal.time)

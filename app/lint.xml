@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+    <!--
+        Informational dependency-version checks. These fire whenever a newer
+        release exists on Maven/Gradle Plugin Portal and are never satisfiable
+        for more than one release cycle. Pinning them down would imply risky
+        major-version upgrades (Koin 3->4, OkHttp 4->5, Retrofit 2->3,
+        Kotlin 2.x, Compose BOM) that are out of scope for this cleanup.
+    -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+
+    <!--
+        SDK/Gradle/AGP freshness hints. Upgrading the project to a newer
+        Android platform, Gradle, or AGP is a deliberate migration decision,
+        not a lint defect; see the version bump rationale in the project's
+        Gradle files and CHANGELOG before changing them.
+    -->
+    <issue id="OldTargetApi" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+</lint>

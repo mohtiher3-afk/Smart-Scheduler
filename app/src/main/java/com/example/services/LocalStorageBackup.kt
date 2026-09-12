@@ -6,6 +6,7 @@ import com.example.models.Course
 import com.example.models.ReminderEntity
 import org.json.JSONArray
 import org.json.JSONObject
+import androidx.core.content.edit
 
 object LocalStorageBackup {
     private const val TAG = "LocalStorageBackup"
@@ -44,7 +45,7 @@ object LocalStorageBackup {
                 json.put("category", course.category)
                 jsonArray.put(json)
             }
-            sharedPreferences.edit().putString(KEY_COURSES, jsonArray.toString()).apply()
+            sharedPreferences.edit { putString(KEY_COURSES, jsonArray.toString()) }
             Log.d(TAG, "Courses successfully backed up to SharedPreferences (LocalStorage)")
         } catch (e: Exception) {
             Log.e(TAG, "Error backing up courses to LocalStorage: ${e.message}", e)
@@ -105,7 +106,7 @@ object LocalStorageBackup {
                 json.put("isEnabled", reminder.isEnabled)
                 jsonArray.put(json)
             }
-            sharedPreferences.edit().putString(KEY_REMINDERS, jsonArray.toString()).apply()
+            sharedPreferences.edit { putString(KEY_REMINDERS, jsonArray.toString()) }
             Log.d(TAG, "Reminders successfully backed up to SharedPreferences (LocalStorage)")
         } catch (e: Exception) {
             Log.e(TAG, "Error backing up reminders to LocalStorage: ${e.message}", e)

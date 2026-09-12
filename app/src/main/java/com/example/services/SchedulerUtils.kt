@@ -38,7 +38,7 @@ object SchedulerUtils {
         endCalendar.time = end
         endCalendar.add(Calendar.DAY_OF_YEAR, 1) // Make it inclusive of end date
 
-        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
+        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ar"))
         val sdfDb = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
         while (calendar.before(endCalendar)) {
@@ -172,7 +172,7 @@ object SchedulerUtils {
 
         val sessions = mutableListOf<SessionResult>()
         val calendar = Calendar.getInstance()
-        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale("ar"))
+        val sdfOutput = SimpleDateFormat("d MMMM yyyy", Locale.forLanguageTag("ar"))
         val sdfDb = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
         var count = 0

@@ -47,10 +47,12 @@ class GeminiRepository {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    private val json = Json { ignoreUnknownKeys = true }
+
     private val service = Retrofit.Builder()
         .baseUrl("https://generativelanguage.googleapis.com/")
         .client(client)
-        .addConverterFactory(Json { ignoreUnknownKeys = true }.asConverterFactory("application/json".toMediaType()))
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
         .build()
         .create(GeminiApiService::class.java)
 

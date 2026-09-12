@@ -33,6 +33,9 @@ import com.example.core.designsystem.theme.AppTheme
 import com.example.core.designsystem.theme.Dimens
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
+import androidx.compose.material.icons.automirrored.rounded.FormatListBulleted
 
 enum class CalendarViewType {
     Month, Week, Day, Agenda, Timeline
@@ -188,7 +191,7 @@ private fun ViewSwitcherRow(
                 Triple(CalendarViewType.Month, "شهر", Icons.Rounded.CalendarMonth),
                 Triple(CalendarViewType.Week, "أسبوع", Icons.Rounded.ViewWeek),
                 Triple(CalendarViewType.Day, "يوم", Icons.Rounded.CalendarToday),
-                Triple(CalendarViewType.Agenda, "أجندة", Icons.Rounded.FormatListBulleted),
+                Triple(CalendarViewType.Agenda, "أجندة", Icons.AutoMirrored.Rounded.FormatListBulleted),
                 Triple(CalendarViewType.Timeline, "خط زمني", Icons.Rounded.Timeline)
             )
         } else {
@@ -196,7 +199,7 @@ private fun ViewSwitcherRow(
                 Triple(CalendarViewType.Month, "Month", Icons.Rounded.CalendarMonth),
                 Triple(CalendarViewType.Week, "Week", Icons.Rounded.ViewWeek),
                 Triple(CalendarViewType.Day, "Day", Icons.Rounded.CalendarToday),
-                Triple(CalendarViewType.Agenda, "Agenda", Icons.Rounded.FormatListBulleted),
+                Triple(CalendarViewType.Agenda, "Agenda", Icons.AutoMirrored.Rounded.FormatListBulleted),
                 Triple(CalendarViewType.Timeline, "Timeline", Icons.Rounded.Timeline)
             )
         }
@@ -270,7 +273,7 @@ private fun CalendarNavigationHeader(
     }
 
     val headerText = remember(selectedView, selectedDate, currentMonth, currentLanguage) {
-        val locale = if (currentLanguage == "ar") Locale("ar") else Locale.ENGLISH
+        val locale = if (currentLanguage == "ar") Locale.forLanguageTag("ar") else Locale.ENGLISH
         when (selectedView) {
             CalendarViewType.Month -> {
                 val sdf = SimpleDateFormat("MMMM yyyy", locale)
@@ -400,7 +403,7 @@ private fun SelectedLessonItem(
     val defaultColor = AppTheme.colors.primary
     val courseColor = remember(course.colorHex, defaultColor) {
         try {
-            Color(android.graphics.Color.parseColor(course.colorHex))
+            Color(course.colorHex.toColorInt())
         } catch (e: Exception) {
             defaultColor
         }
@@ -468,7 +471,7 @@ private fun SelectedLessonItem(
                 IconButton(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(course.zoomAccount))
+                            val intent = Intent(Intent.ACTION_VIEW, course.zoomAccount.toUri())
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Cannot open Zoom", Toast.LENGTH_SHORT).show()

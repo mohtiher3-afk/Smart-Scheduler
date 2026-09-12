@@ -45,6 +45,9 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.example.models.Course
 import kotlin.math.roundToInt
+import androidx.core.graphics.toColorInt
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import android.annotation.SuppressLint
 
 private fun parseTimeToMinutes(timeStr: String): Int {
     try {
@@ -450,7 +453,7 @@ fun DashboardTab(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.tertiary,
                                 modifier = Modifier.size(20.dp)
@@ -741,7 +744,7 @@ fun DashboardTab(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.TrendingUp,
+                                imageVector = Icons.AutoMirrored.Rounded.TrendingUp,
                                 contentDescription = null,
                                 tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
@@ -1129,6 +1132,7 @@ fun DashboardTab(
     }
 }
 
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun RechartsWebViewCard(
     completedCoursesCount: Int,
@@ -1404,7 +1408,7 @@ fun CoursePercentageProgressCard(
     }
     
     val courseColor = try {
-        Color(android.graphics.Color.parseColor(course.colorHex))
+        Color(course.colorHex.toColorInt())
     } catch (e: Exception) {
         MaterialTheme.colorScheme.primary
     }

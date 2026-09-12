@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.TrendingUp
-import androidx.compose.material.icons.rounded.TrendingDown
+import androidx.compose.material.icons.automirrored.rounded.TrendingUp
+import androidx.compose.material.icons.automirrored.rounded.TrendingDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -109,7 +109,7 @@ fun SmartStatisticCard(
                     if (trendPercentage != null) {
                         val isPositive = trendPercentage >= 0
                         val trendColor = if (isPositive) AppTheme.semanticColors.success else MaterialTheme.colorScheme.error
-                        val trendIcon = if (isPositive) Icons.Rounded.TrendingUp else Icons.Rounded.TrendingDown
+                        val trendIcon = if (isPositive) Icons.AutoMirrored.Rounded.TrendingUp else Icons.AutoMirrored.Rounded.TrendingDown
                         val sign = if (isPositive) "+" else ""
 
                         Row(

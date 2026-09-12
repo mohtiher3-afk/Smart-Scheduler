@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.core.designsystem.theme.AppTheme
 import java.util.*
+import androidx.core.graphics.toColorInt
+import androidx.core.net.toUri
 
 @Composable
 fun DayView(
@@ -147,7 +149,7 @@ private fun DayCourseBlock(
     val defaultColor = AppTheme.colors.primary
     val courseColor = remember(course.colorHex, defaultColor) {
         try {
-            Color(android.graphics.Color.parseColor(course.colorHex))
+            Color(course.colorHex.toColorInt())
         } catch (e: Exception) {
             defaultColor
         }
@@ -196,7 +198,7 @@ private fun DayCourseBlock(
                 Button(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, Uri.parse(course.zoomAccount))
+                            val intent = Intent(Intent.ACTION_VIEW, course.zoomAccount.toUri())
                             context.startActivity(intent)
                         } catch (e: Exception) {
                             Toast.makeText(context, "Cannot open Zoom", Toast.LENGTH_SHORT).show()

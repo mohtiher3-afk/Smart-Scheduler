@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import com.example.models.Course
 import com.example.services.SchedulerUtils
 import com.example.screens.LocalAppLanguage
+import androidx.core.graphics.toColorInt
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -118,7 +119,7 @@ fun CourseCard(
 
     val customCardColor = remember(course.colorHex) {
         try {
-            Color(android.graphics.Color.parseColor(course.colorHex))
+            Color(course.colorHex.toColorInt())
         } catch (e: Exception) {
             primaryColor
         }
