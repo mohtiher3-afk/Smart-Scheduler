@@ -1,7 +1,5 @@
 package com.example.ui.navigation
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -39,7 +37,8 @@ fun SmartSchedulerNavGraph(
     viewModel: MainViewModel,
     onAddCourseClick: () -> Unit,
     onEditCourseClick: (Course) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -76,7 +75,16 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeOut()
             }
         ) {
-            com.example.feature.dashboard.presentation.DashboardScreenRoot()
+            DashboardTab(
+                courses = courses,
+                themeMode = themeMode,
+                dynamicColorEnabled = dynamicColorEnabled,
+                onThemeChange = { viewModel.setThemeMode(it) },
+                onDynamicColorChange = { viewModel.setDynamicColorEnabled(it) },
+                onCourseClick = { onEditCourseClick(it) },
+                onAddCourseClick = onAddCourseClick,
+                context = context
+            )
         }
 
         composable(
@@ -88,7 +96,22 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            com.example.feature.schedule.presentation.ScheduleScreenRoot()
+            ScheduleTab(
+                courses = courses,
+                upcomingLecturesAlerts = upcomingLecturesAlerts,
+                onCalculate = { course ->
+                    viewModel.selectCourseForCalculator(course.id.toLong())
+                    navController.navigate(Screen.Calculator.route)
+                },
+                onEdit = { onEditCourseClick(it) },
+                onDelete = { viewModel.deleteCourse(it) },
+                onTestAlarm = { viewModel.triggerInstantTestAlarm(context, it.name, it.zoomAccount) },
+                onTestUpcomingAlarm = { name, zoom -> viewModel.triggerInstantTestAlarm(context, name, zoom) },
+                clipboardManager = clipboardManager,
+                context = context,
+                onCourseUpdated = { viewModel.updateCourse(it) },
+                onExportCSV = { viewModel.exportAllDataToCSV(context) }
+            )
         }
 
         composable(
@@ -100,7 +123,10 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            com.example.feature.smartscheduler.presentation.SmartSchedulerScreenRoot()
+            SmartSchedulerTab(
+                viewModel = viewModel,
+                onCourseAddedAndNavigationRequested = { navController.popBackStack() }
+            )
         }
 
         composable(
@@ -112,7 +138,32 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            com.example.feature.calculator.presentation.CalculatorScreenRoot()
+            CalculatorTab(
+                courses = courses,
+                selectedCourseId = selectedCourseId,
+                startDate = startDate,
+                endDate = endDate,
+                calculatedSessions = calculatedSessions,
+                reminders = reminders,
+                onCourseSelected = { viewModel.selectCourseForCalculator(it) },
+                onStartDateClick = { showStartDatePicker = true },
+                onEndDateClick = { showEndDatePicker = true },
+                onToggleReminder = { session ->
+                    val course = courses.find { it.id.toLong() == selectedCourseId }
+                    if (course != null) {
+                        viewModel.toggleReminderForSession(context, course, session.dateString, session.formattedDate)
+                    }
+                },
+                context = context,
+                onToggleSessionCompleted = { sessionNum ->
+                    val course = courses.find { it.id.toLong() == selectedCourseId }
+                    if (course != null) {
+                        viewModel.updateCourse(course.toggleLectureCompleted(sessionNum))
+                    }
+                },
+                onCourseUpdated = { viewModel.updateCourse(it) },
+                viewModel = viewModel
+            )
         }
 
         composable(
@@ -124,7 +175,17 @@ fun SmartSchedulerNavGraph(
                 slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut()
             }
         ) {
-            com.example.feature.alerts.presentation.AlertsScreenRoot()
+            RemindersTab(
+                reminders = reminders,
+                onDeleteReminder = { viewModel.deleteReminder(it) },
+                onClearAllReminders = { viewModel.clearAllReminders(context) },
+                selectedSound = selectedSound,
+                onSoundChange = { viewModel.setAlertSound(it) },
+                onPlaySoundPreview = { viewModel.playAlertSoundPreview(context, it) },
+                onStopSoundPreview = { viewModel.stopAlertSoundPreview() },
+                onTestInstantAlert = { name, zoom -> viewModel.triggerInstantTestAlarm(context, name, zoom) },
+                context = context
+            )
         }
 
         composable(
@@ -132,7 +193,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.tasks.presentation.TasksScreenRoot()
+            TasksTab()
         }
 
         composable(
@@ -140,7 +201,10 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.more.presentation.MoreScreenRoot()
+            MoreTab(
+                navController = navController,
+                onNavigateToSettings = onOpenSettings
+            )
         }
 
         composable(
@@ -148,7 +212,10 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.courses.presentation.CoursesScreenRoot()
+            CoursesScreen(
+                courses = courses,
+                onAddCourseClick = onAddCourseClick
+            )
         }
 
         composable(
@@ -156,7 +223,9 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.synccenter.presentation.SyncCenterScreenRoot()
+            com.example.ui.features.sync.SyncCenterScreen(
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(
@@ -164,7 +233,10 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.analytics.presentation.AnalyticsScreenRoot()
+            com.example.ui.features.analytics.AnalyticsScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(
@@ -172,7 +244,10 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.calendar.presentation.CalendarScreenRoot()
+            com.example.ui.features.calendar.CalendarScreen(
+                courses = courses,
+                onCourseUpdated = { viewModel.updateCourse(it) }
+            )
         }
 
         composable(
@@ -180,7 +255,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.notes.presentation.NotesScreenRoot()
+            NotesScreen()
         }
 
         composable(
@@ -188,7 +263,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.files.presentation.FilesScreenRoot()
+            FilesScreen()
         }
 
         composable(
@@ -196,7 +271,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.exams.presentation.ExamsScreenRoot()
+            ExamsScreen()
         }
 
         composable(
@@ -204,7 +279,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.profile.presentation.ProfileScreenRoot()
+            ProfileScreen(courses = courses)
         }
 
         composable(
@@ -212,7 +287,7 @@ fun SmartSchedulerNavGraph(
             enterTransition = { slideInHorizontally(animationSpec = tween(duration, easing = easing)) { it } + fadeIn() },
             exitTransition = { slideOutHorizontally(animationSpec = tween(duration, easing = easing)) { -it } + fadeOut() }
         ) {
-            com.example.feature.studyhub.presentation.StudyHubScreenRoot()
+            StudyHubScreen(viewModel = viewModel)
         }
     }
 

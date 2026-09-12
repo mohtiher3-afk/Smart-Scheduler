@@ -252,7 +252,8 @@ fun HomeScreen(
                     viewModel = viewModel,
                     onAddCourseClick = { courseToEdit = null; showAddCourseDialog = true },
                     onEditCourseClick = { courseToEdit = it; showAddCourseDialog = true },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    onOpenSettings = { showSettingsDialog = true }
                 )
 
                 androidx.compose.animation.AnimatedVisibility(visible = FocusModeManager.isFocusModeActive, modifier = Modifier.fillMaxSize().zIndex(100f)) {
